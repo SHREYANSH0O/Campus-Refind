@@ -1,0 +1,86 @@
+export type TicketType = "lost" | "found";
+
+export type TicketStatus = "open" | "under_verification" | "returned_closed";
+
+export type ItemCategory =
+  | "Electronics"
+  | "IDs & Cards"
+  | "Keys"
+  | "Wallets & Bags"
+  | "Books & Stationery"
+  | "Clothing & Accessories"
+  | "Sports & Fitness"
+  | "Watches & Jewelry"
+  | "Other";
+
+export interface CampusUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "Student" | "Faculty" | "Campus Security";
+  department: string;
+  campusId: string;
+  avatarInitials: string;
+  password?: string;
+  joinedDate?: string;
+}
+
+export interface ClaimVerification {
+  id: string;
+  ticketId: string;
+  claimantId: string;
+  claimantName: string;
+  claimantEmail: string;
+  claimantRole: "Student" | "Faculty" | "Campus Security";
+  proofDetails: string;
+  contactNumber: string;
+  proofAttachmentUrl?: string;
+  submittedAt: string;
+  status: "pending" | "approved" | "rejected";
+  handoverCode?: string;
+  rejectionReason?: string;
+}
+
+export interface ItemTicket {
+  id: string;
+  ticketNumber: string;
+  type: TicketType;
+  title: string;
+  category: ItemCategory;
+  location: string;
+  specificArea?: string;
+  date: string;
+  time?: string;
+  description: string;
+  secretIdentifiers?: string; // Private details used to verify claimant
+  imageUrl?: string;
+  status: TicketStatus;
+  reporterId: string;
+  reporterName: string;
+  reporterRole: "Student" | "Faculty" | "Campus Security";
+  reporterContact: string;
+  createdAt: string;
+  claims: ClaimVerification[];
+  handoverNotes?: string;
+  closedAt?: string;
+  closedBy?: string;
+}
+
+export interface CampusNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  type: "claim_received" | "claim_approved" | "claim_rejected" | "ticket_closed" | "info";
+  ticketId?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: "bot" | "user";
+  text: string;
+  timestamp: string;
+  quickTopics?: boolean;
+}

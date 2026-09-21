@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered campus member profile and security roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Student", "Faculty", "Campus Security"] },
+        "department": { "type": "string" },
+        "campusId": { "type": "string" },
+        "avatarInitials": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "name", "email", "role", "campusId"]
+    },
+    "ItemTicket": {
+      "title": "ItemTicket",
+      "description": "Lost and found property report registered on campus",
+      "type": "object",
+      "properties": {
+        "ticketNumber": { "type": "string" },
+        "type": { "type": "string", "enum": ["lost", "found"] },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "location": { "type": "string" },
+        "specificArea": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "description": { "type": "string" },
+        "secretIdentifiers": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "under_verification", "returned_closed"] },
+        "reporterId": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterRole": { "type": "string" },
+        "reporterContact": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "handoverNotes": { "type": "string" },
+        "closedAt": { "type": "string" },
+        "closedBy": { "type": "string" }
+      },
+      "required": ["ticketNumber", "type", "title", "category", "location", "status", "reporterId", "createdAt"]
+    },
+    "Claim": {
+      "title": "Claim",
+      "description": "Ownership claim verification for a reported item",
+      "type": "object",
+      "properties": {
+        "ticketId": { "type": "string" },
+        "claimantId": { "type": "string" },
+        "claimantName": { "type": "string" },
+        "claimantEmail": { "type": "string" },
+        "claimantRole": { "type": "string" },
+        "proofDetails": { "type": "string" },
+        "contactNumber": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "handoverCode": { "type": "string" },
+        "rejectionReason": { "type": "string" }
+      },
+      "required": ["ticketId", "claimantId", "claimantName", "proofDetails", "status", "submittedAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Campus notification for ticket and claim updates",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "read": { "type": "boolean" },
+        "type": { "type": "string" },
+        "ticketId": { "type": "string" }
+      },
+      "required": ["userId", "title", "message", "timestamp", "read"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles indexed by UID"
+    },
+    "/tickets/{ticketId}": {
+      "schema": "ItemTicket",
+      "description": "Lost and found tickets"
+    },
+    "/tickets/{ticketId}/claims/{claimId}": {
+      "schema": "Claim",
+      "description": "Claims associated with a specific ticket"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notification messages"
+    }
+  }
+}

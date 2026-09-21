@@ -1,0 +1,6 @@
+{
+  "name": "Campus ReFind",
+  "description": "Campus lost and found portal for students and faculty to report, claim, and verify items with an AI Assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

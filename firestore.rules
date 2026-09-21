@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Item tickets
+    match /tickets/{ticketId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+
+      // Subcollection for claims
+      match /claims/{claimId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read, write: if true;
+    }
+  }
+}
