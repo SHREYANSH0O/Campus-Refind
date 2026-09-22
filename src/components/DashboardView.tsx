@@ -36,6 +36,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const foundCount = tickets.filter((t) => t.type === "found" && t.status !== "returned_closed").length;
   const returnedCount = tickets.filter((t) => t.status === "returned_closed").length;
 
+  const isSecurityOfficer =
+    currentUser?.role === "Campus Security" ||
+    currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com";
+
   const recentTickets = [...tickets]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 6);
@@ -82,7 +86,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>Report Found Item</span>
             </button>
 
-            {onOpenAdminDesk && (
+            {onOpenAdminDesk && isSecurityOfficer && (
               <button
                 id="dashboard-admin-desk-btn"
                 onClick={onOpenAdminDesk}

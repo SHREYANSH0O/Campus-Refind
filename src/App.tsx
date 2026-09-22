@@ -225,6 +225,16 @@ export default function App() {
       setIsNotificationsModalOpen(true);
       return;
     }
+    if (tab === "admin_desk") {
+      const isSecurityOfficer =
+        currentUser?.role === "Campus Security" ||
+        currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com";
+      if (!isSecurityOfficer) {
+        setCurrentTab("dashboard");
+        setMobileMenuOpen(false);
+        return;
+      }
+    }
     setCurrentTab(tab);
     setMobileMenuOpen(false);
   };
@@ -701,7 +711,12 @@ export default function App() {
               onOpenReport={handleOpenReport}
               onOpenBrowse={() => setCurrentTab("browse")}
               onSelectItem={(ticket) => setSelectedTicket(ticket)}
-              onOpenAdminDesk={() => setCurrentTab("admin_desk")}
+              onOpenAdminDesk={
+                currentUser?.role === "Campus Security" ||
+                currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com"
+                  ? () => setCurrentTab("admin_desk")
+                  : undefined
+              }
             />
           )}
 

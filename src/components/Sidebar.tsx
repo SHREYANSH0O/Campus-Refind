@@ -39,18 +39,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
+  const isSecurityOfficer =
+    currentUser?.role === "Campus Security" ||
+    currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com";
+
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "browse", label: "Browse reports", icon: Search },
     { id: "report", label: "Report an item", icon: PackagePlus },
     { id: "claims", label: "My claims", icon: FileCheck2 },
-    {
-      id: "admin_desk",
-      label: "Security & Desk",
-      icon: ShieldCheck,
-      badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
-      badgeColor: "bg-amber-500",
-    },
+    ...(isSecurityOfficer
+      ? [
+          {
+            id: "admin_desk",
+            label: "Security & Desk",
+            icon: ShieldCheck,
+            badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
+            badgeColor: "bg-amber-500",
+          },
+        ]
+      : []),
     { id: "notifications", label: "Notifications", icon: Bell, badge: unreadCount },
   ];
 

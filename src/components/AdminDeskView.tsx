@@ -54,8 +54,31 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
   const [rejectingClaimId, setRejectingClaimId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  const isSecurityOfficer = currentUser.role === "Campus Security";
   const isMasterAdmin = currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
+  const isSecurityOfficer = currentUser.role === "Campus Security" || isMasterAdmin;
+
+  // If user is not an authorized security officer or admin, block access completely
+  if (!isSecurityOfficer) {
+    return (
+      <div className="max-w-xl mx-auto py-16 text-center space-y-4 animate-in fade-in duration-200">
+        <div className="w-16 h-16 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 mx-auto flex items-center justify-center shadow-sm">
+          <Shield className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">Access Restricted to Admin Desk</h2>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            The Vivekanand Hall Central Desk Portal is restricted exclusively to authorized Campus Security Officers and Portal Administrators (Shreyansh Singh).
+          </p>
+        </div>
+        <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs text-slate-600 text-left space-y-1.5">
+          <div className="font-bold text-slate-800">Your Current Credentials:</div>
+          <div>• Name: <span className="font-semibold text-slate-900">{currentUser.name}</span></div>
+          <div>• Role: <span className="font-semibold text-blue-600">{currentUser.role}</span></div>
+          <div>• Institutional ID: <span className="font-mono text-slate-700">{currentUser.campusId}</span></div>
+        </div>
+      </div>
+    );
+  }
 
   // Filtered users for admin user management tab
   const filteredUsers = useMemo(() => {
@@ -188,7 +211,13 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
               <Building className="w-3.5 h-3.5 text-slate-400" />
               <span>Location: <strong>Vivekanand Hall Central Desk</strong></span>
               <span>•</span>
-              <span>Officer on Duty: <strong>{currentUser.name}</strong> ({currentUser.campusId})</span>
+              <span>
+                Officer on Duty:{" "}
+                <strong className="text-slate-900 uppercase">
+                  {isMasterAdmin ? "Shreyansh Singh" : currentUser.name}
+                </strong>{" "}
+                ({isMasterAdmin ? "ADMIN-SEC-001" : currentUser.campusId})
+              </span>
             </p>
           </div>
         </div>
