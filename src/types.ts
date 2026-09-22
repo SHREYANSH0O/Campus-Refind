@@ -23,6 +23,8 @@ export interface CampusUser {
   avatarInitials: string;
   password?: string;
   joinedDate?: string;
+  emailVerified?: boolean;
+  authProvider?: "google" | "password";
 }
 
 export interface ClaimVerification {

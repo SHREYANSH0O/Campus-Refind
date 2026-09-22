@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import dns from "dns";
 
 dotenv.config();
 
@@ -14,6 +15,32 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: "10mb" }));
+
+// Known disposable / fake email domains to block
+const DISPOSABLE_DOMAINS = new Set([
+  "mailinator.com",
+  "tempmail.com",
+  "temp-mail.org",
+  "10minutemail.com",
+  "guerrillamail.com",
+  "yopmail.com",
+  "fake.com",
+  "fakemail.com",
+  "throwawaymail.com",
+  "throwaway.email",
+  "sharklasers.com",
+  "getairmail.com",
+  "dispostable.com",
+  "trashmail.com",
+  "emailfake.com",
+  "generator.email",
+  "crazymailing.com",
+  "burnermail.io",
+  "maildrop.cc",
+  "inboxkitten.com",
+  "trashmail.net",
+  "mytemp.email"
+]);
 
 // Initialize Gemini SDK lazily / safely
 let aiClient: GoogleGenAI | null = null;
@@ -34,6 +61,84 @@ function getGenAI(): GoogleGenAI | null {
 // API Routes
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Real-Time Email Legitimacy & MX Record Verification Route
+app.post("/api/validate-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ valid: false, error: "Please enter a valid email address." });
+    }
+
+    const trimmed = email.trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmed)) {
+      return res.status(400).json({
+        valid: false,
+        error: "Invalid email syntax. Please enter a valid address (e.g. name@university.edu or student@gmail.com).",
+      });
+    }
+
+    const parts = trimmed.split("@");
+    const domain = parts[1];
+
+    // 1. Block disposable / fake email domains
+    if (DISPOSABLE_DOMAINS.has(domain)) {
+      return res.status(400).json({
+        valid: false,
+        error: `Temporary or burner email services (@${domain}) are prohibited on Campus ReFind. Please use an official university or personal email.`,
+      });
+    }
+
+    // 2. Query DNS for real MX (Mail Exchange) records to ensure domain exists and can receive mail
+    try {
+      const mxRecords = await dns.promises.resolveMx(domain);
+      if (!mxRecords || mxRecords.length === 0) {
+        return res.status(400).json({
+          valid: false,
+          error: `The domain '@${domain}' does not have any active mail exchange servers and cannot receive emails. Please use a legitimate, working email address.`,
+        });
+      }
+      return res.json({ valid: true, domain, exchange: mxRecords[0].exchange });
+    } catch (dnsErr: any) {
+      if (
+        dnsErr.code === "ENOTFOUND" ||
+        dnsErr.code === "ENODATA" ||
+        dnsErr.code === "ESERVFAIL"
+      ) {
+        return res.status(400).json({
+          valid: false,
+          error: `The email domain '@${domain}' does not exist on the internet. Please enter a real, active email address.`,
+        });
+      }
+
+      // Safe fallback for well-known verified providers if network lookup has high latency
+      const TRUSTED_DOMAINS = [
+        "gmail.com",
+        "yahoo.com",
+        "outlook.com",
+        "hotmail.com",
+        "icloud.com",
+        "proton.me",
+        "protonmail.com",
+      ];
+      if (
+        TRUSTED_DOMAINS.includes(domain) ||
+        domain.endsWith(".edu") ||
+        domain.endsWith(".ac.in")
+      ) {
+        return res.json({ valid: true, domain });
+      }
+
+      return res.status(400).json({
+        valid: false,
+        error: `Could not verify mail server for '@${domain}'. Please check for typos and ensure the domain is active.`,
+      });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ valid: false, error: "Email validation check failed." });
+  }
 });
 
 // AI Assistant Chat Route

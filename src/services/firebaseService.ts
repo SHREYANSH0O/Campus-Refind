@@ -14,6 +14,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
+  sendEmailVerification,
+  reload,
+  User as FirebaseUser,
 } from "firebase/auth";
 import { db, auth } from "../firebase";
 import { CampusUser, ItemTicket, CampusNotification, ClaimVerification } from "../types";
@@ -218,6 +221,69 @@ export async function saveNotificationToFirestore(notif: CampusNotification) {
     await setDoc(doc(db, NOTIFICATIONS_COLLECTION, notif.id), notif, { merge: true });
   } catch (error) {
     console.error("Error saving notification:", error);
+  }
+}
+
+
+/**
+ * Register with Email and Password and send real email verification
+ */
+export async function registerWithEmailVerification(
+  email: string,
+  pass: string,
+  displayName: string
+): Promise<{ firebaseUser: FirebaseUser }> {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+  if (displayName) {
+    try {
+      await updateProfile(userCredential.user, { displayName });
+    } catch {
+      // Non-critical profile name update
+    }
+  }
+  // Send email verification link to user's real email inbox
+  await sendEmailVerification(userCredential.user);
+  return { firebaseUser: userCredential.user };
+}
+
+/**
+ * Login with Email and Password
+ */
+export async function loginWithEmail(
+  email: string,
+  pass: string
+): Promise<{ firebaseUser: FirebaseUser }> {
+  const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+  return { firebaseUser: userCredential.user };
+}
+
+/**
+ * Resend verification email to current user
+ */
+export async function resendVerificationEmail(): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error("No active user session found to send verification email to.");
+  }
+  await sendEmailVerification(auth.currentUser);
+}
+
+/**
+ * Reload current user from Firebase Auth and check if email is verified
+ */
+export async function checkEmailVerification(): Promise<boolean> {
+  if (!auth.currentUser) return false;
+  await reload(auth.currentUser);
+  return auth.currentUser.emailVerified;
+}
+
+/**
+ * Sign out current Firebase user
+ */
+export async function logoutFirebaseAuth(): Promise<void> {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.warn("Sign out error:", error);
   }
 }
 
