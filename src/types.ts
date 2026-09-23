@@ -41,6 +41,7 @@ export interface ClaimVerification {
   status: "pending" | "approved" | "rejected";
   handoverCode?: string;
   rejectionReason?: string;
+  reviewNote?: string;
 }
 
 export interface ItemTicket {
@@ -75,7 +76,19 @@ export interface CampusNotification {
   message: string;
   timestamp: string;
   read: boolean;
-  type: "claim_received" | "claim_approved" | "claim_rejected" | "ticket_closed" | "info";
+  type:
+    | "report_submitted"
+    | "new_report"
+    | "claim_submitted"
+    | "claim_received"
+    | "claim_approved"
+    | "claim_rejected"
+    | "more_info"
+    | "item_handed_over"
+    | "item_returned"
+    | "handover_completed"
+    | "ticket_closed"
+    | "info";
   ticketId?: string;
 }
 

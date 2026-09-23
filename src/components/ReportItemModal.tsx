@@ -63,7 +63,6 @@ export const ReportItemModal: React.FC<ReportItemModalProps> = ({
   const [time, setTime] = useState("12:00");
   const [description, setDescription] = useState("");
   const [secretIdentifiers, setSecretIdentifiers] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
   if (!isOpen) return null;
@@ -73,7 +72,7 @@ export const ReportItemModal: React.FC<ReportItemModalProps> = ({
     if (!title.trim()) return;
 
     const finalLocation = customLocation.trim() ? customLocation.trim() : location;
-    const finalImage = imageUrl.trim() || PRESET_IMAGES[category];
+    const finalImage = PRESET_IMAGES[category] || "";
 
     onAddTicket({
       type: ticketType,
@@ -313,29 +312,6 @@ export const ReportItemModal: React.FC<ReportItemModalProps> = ({
                 placeholder="e.g. Octocat sticker, wallpaper of dog, serial ends in 98X4"
                 className="w-full px-3.5 py-2 rounded-xl border border-amber-200 bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-200 focus:outline-none text-slate-900 text-xs"
               />
-            </div>
-
-            {/* Photo URL or Preset */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Item Photo (Optional URL or Preset)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://... (or leave empty to auto-assign category preset)"
-                  className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none text-slate-900 text-xs"
-                />
-                <button
-                  type="button"
-                  onClick={() => setImageUrl(PRESET_IMAGES[category])}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition shrink-0"
-                >
-                  Use Preset
-                </button>
-              </div>
             </div>
 
             {/* Reporter Info Preview */}
