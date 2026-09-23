@@ -488,7 +488,11 @@ export default function App() {
   };
 
   // Reject a claim
-  const handleRejectClaim = (ticketId: string, claimId: string) => {
+  const handleRejectClaim = (
+  ticketId: string,
+  claimId: string,
+  rejectReason: string
+) => {
     let updatedTicketForCloud: ItemTicket | null = null;
 
     setTickets((prev) =>
@@ -511,19 +515,37 @@ export default function App() {
       saveTicketToFirestore(updatedTicketForCloud);
     }
 
-    if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket((prev) =>
-        prev
-          ? {
-              ...prev,
-              claims: prev.claims.map((c) =>
-                c.id === claimId ? { ...c, status: "rejected" } : c
-              ),
-            }
-          : null
-      );
-    }
-  };
+   if (selectedTicket && selectedTicket.id === ticketId) {
+  setSelectedTicket((prev) =>
+    prev
+      ? {
+          ...prev,
+          claims: prev.claims.map((c) =>
+            c.id === claimId ? { ...c, status: "rejected" } : c
+          ),
+        }
+      : null
+  );
+}
+
+const rejectedTicket = tickets.find(
+  (ticket) => ticket.id === ticketId
+);
+
+const rejectedClaim = rejectedTicket?.claims.find(
+  (claim) => claim.id === claimId
+);
+
+if (rejectedTicket && rejectedClaim) {
+  createNotification(
+    rejectedClaim.claimantId,
+    "Claim rejected",
+    `Your claim for "${rejectedTicket.title}" has been rejected. Reason: ${rejectReason}`,
+    "claim_rejected",
+    ticketId
+  );
+}
+};
 
   // Confirm return & close ticket
   const handleCloseTicket = (ticketId: string, handoverNotes: string) => {

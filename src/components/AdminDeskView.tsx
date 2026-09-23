@@ -25,7 +25,11 @@ interface AdminDeskViewProps {
   tickets: ItemTicket[];
   currentUser: CampusUser;
   onApproveClaim: (ticketId: string, claimId: string) => void;
-  onRejectClaim: (ticketId: string, claimId: string) => void;
+  onRejectClaim: (
+  ticketId: string,
+  claimId: string,
+  rejectReason: string
+) => void;
   onCloseTicket: (ticketId: string, handoverNotes: string) => void;
   onSelectItem: (ticket: ItemTicket) => void;
   users?: CampusUser[];
@@ -623,7 +627,7 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                onRejectClaim(ticket.id, claim.id);
+                                onRejectClaim(ticket.id, claim.id, rejectReason);
                                 setRejectingClaimId(null);
                                 setRejectReason("");
                               }}
