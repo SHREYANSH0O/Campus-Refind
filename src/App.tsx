@@ -214,6 +214,50 @@ export default function App() {
     localStorage.setItem("refind_notifications", JSON.stringify(notifications));
   }, [notifications]);
 
+    // ---------------------------------------------------------
+  // Notification helpers
+  // ---------------------------------------------------------
+
+  const createNotification = (
+    userId: string,
+    title: string,
+    message: string,
+    type: CampusNotification["type"],
+    ticketId?: string
+  ) => {
+    const notification: CampusNotification = {
+      id: `notif-${crypto.randomUUID()}`,
+      userId,
+      title,
+      message,
+      timestamp: "Just now",
+      read: false,
+      type,
+      ticketId,
+    };
+
+    saveNotificationToFirestore(notification);
+  };
+
+  const notifySecurity = (
+    title: string,
+    message: string,
+    type: CampusNotification["type"],
+    ticketId?: string
+  ) => {
+    users
+      .filter((user) => user.role === "Campus Security")
+      .forEach((securityUser) => {
+        createNotification(
+          securityUser.id,
+          title,
+          message,
+          type,
+          ticketId
+        );
+      });
+  };
+
   // Handle Tab navigation
   const handleSelectTab = (tab: string) => {
     if (tab === "report") {
@@ -266,18 +310,22 @@ export default function App() {
     saveTicketToFirestore(newTicket);
 
     // Add notification
-    const newNotif: CampusNotification = {
-      id: `notif-${Date.now()}`,
-      userId: currentUser.id,
-      title: `Ticket #${newTicket.ticketNumber} Raised`,
-      message: `Your ${newTicket.type} item "${newTicket.title}" at ${newTicket.location} is now posted.`,
-      timestamp: "Just now",
-      read: false,
-      type: "info",
-      ticketId: newTicket.id,
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-    saveNotificationToFirestore(newNotif);
+        // 1. Reporter / Finder confirmation
+    createNotification(
+      currentUser.id,
+      "Report submitted",
+      `Your ${newTicket.type} item "${newTicket.title}" at ${newTicket.location} has been successfully reported.`,
+      "report_submitted",
+      newTicket.id
+    );
+
+    // 2. Campus Security notification
+    notifySecurity(
+      `New ${newTicket.type}-item report`,
+      `${currentUser.name} reported a ${newTicket.type} item "${newTicket.title}" at ${newTicket.location}.`,
+      "new_report",
+      newTicket.id
+    );
   };
 
   // Submit claim on a ticket
@@ -336,19 +384,39 @@ export default function App() {
     }
 
     // Add alert for the claimant
-    const claimantNotif: CampusNotification = {
-      id: `notif-${Date.now()}`,
-      userId: currentUser.id,
-      title: "Claim Submitted for Verification",
-      message:
-        "Your proof of ownership has been forwarded to the ticket reporter & Campus Security.",
-      timestamp: "Just now",
-      read: false,
-      type: "claim_received",
-      ticketId,
-    };
-    setNotifications((prev) => [claimantNotif, ...prev]);
-    saveNotificationToFirestore(claimantNotif);
+        const reportedTicket = tickets.find(
+      (ticket) => ticket.id === ticketId
+    );
+
+    if (reportedTicket) {
+      // 1. Claimant notification
+      createNotification(
+        currentUser.id,
+        "Claim submitted",
+        `Your claim for "${reportedTicket.title}" has been submitted for verification.`,
+        "claim_submitted",
+        ticketId
+      );
+
+      // 2. Reporter / Finder notification
+      if (reportedTicket.reporterId !== currentUser.id) {
+        createNotification(
+          reportedTicket.reporterId,
+          "New claim received",
+          `${currentUser.name} submitted an ownership claim for "${reportedTicket.title}".`,
+          "claim_received",
+          ticketId
+        );
+      }
+
+      // 3. Campus Security notification
+      notifySecurity(
+        "New claim to review",
+        `${currentUser.name} submitted a claim for "${reportedTicket.title}". Please review the ownership proof.`,
+        "claim_received",
+        ticketId
+      );
+    }
   };
 
   // Approve a claim
@@ -364,10 +432,14 @@ export default function App() {
           const updated = {
             ...t,
             claims: t.claims.map((c) =>
-              c.id === claimId
-                ? { ...c, status: "approved" as const, handoverCode }
-                : { ...c, status: "rejected" as const }
-            ),
+  c.id === claimId
+    ? {
+        ...c,
+        status: "approved" as const,
+        handoverCode,
+      }
+    : c
+),
           };
           updatedTicketForCloud = updated;
           return updated;
@@ -396,18 +468,23 @@ export default function App() {
     }
 
     // Create notification
-    const approveNotif: CampusNotification = {
-      id: `notif-${Date.now()}`,
-      userId: currentUser.id,
-      title: "Claim Approved!",
-      message: `Ownership verification approved. Handover Code ${handoverCode} issued for collection at Vivekanand Hall Central Desk.`,
-      timestamp: "Just now",
-      read: false,
-      type: "claim_approved",
-      ticketId,
-    };
-    setNotifications((prev) => [approveNotif, ...prev]);
-    saveNotificationToFirestore(approveNotif);
+        const approvedTicket = tickets.find(
+      (ticket) => ticket.id === ticketId
+    );
+
+    const approvedClaim = approvedTicket?.claims.find(
+      (claim) => claim.id === claimId
+    );
+
+    if (approvedTicket && approvedClaim) {
+      createNotification(
+        approvedClaim.claimantId,
+        "Claim approved + handover code",
+        `Your claim for "${approvedTicket.title}" has been approved. Your handover code is ${handoverCode}. Please bring your Campus ID to the Vivekanand Hall Central Lost & Found Desk.`,
+        "claim_approved",
+        ticketId
+      );
+    }
   };
 
   // Reject a claim
@@ -491,18 +568,43 @@ export default function App() {
     }
 
     // Celebratory notification
-    const closeNotif: CampusNotification = {
-      id: `notif-${Date.now()}`,
-      userId: currentUser.id,
-      title: "Ticket Successfully Reunited & Closed",
-      message: `The item has been officially verified and returned. Ticket closed by ${currentUser.name}.`,
-      timestamp: "Just now",
-      read: false,
-      type: "ticket_closed",
-      ticketId,
-    };
-    setNotifications((prev) => [closeNotif, ...prev]);
-    saveNotificationToFirestore(closeNotif);
+        const closedTicket = tickets.find(
+      (ticket) => ticket.id === ticketId
+    );
+
+    const approvedClaim = closedTicket?.claims.find(
+      (claim) => claim.status === "approved"
+    );
+
+    if (closedTicket && approvedClaim) {
+      // 1. Claimant / Owner
+      createNotification(
+        approvedClaim.claimantId,
+        "Item returned successfully",
+        `"${closedTicket.title}" has been successfully handed over to you at the Campus Lost & Found Desk.`,
+        "item_returned",
+        ticketId
+      );
+
+      // 2. Original reporter / finder
+      if (closedTicket.reporterId !== approvedClaim.claimantId) {
+        createNotification(
+          closedTicket.reporterId,
+          "Item handed over",
+          `"${closedTicket.title}" has been handed over to its verified owner through Campus Security.`,
+          "item_handed_over",
+          ticketId
+        );
+      }
+
+      // 3. Campus Security
+      notifySecurity(
+        "Handover completed",
+        `The item "${closedTicket.title}" has been successfully handed over and the ticket is now closed.`,
+        "handover_completed",
+        ticketId
+      );
+    }
   };
 
   // Sign out / Log out
