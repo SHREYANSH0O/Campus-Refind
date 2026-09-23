@@ -627,12 +627,19 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                onRejectClaim(ticket.id, claim.id, rejectReason);
-                                setRejectingClaimId(null);
-                                setRejectReason("");
-                              }}
-                              className="flex-1 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg"
-                            >
+  if (!rejectReason.trim()) return;
+
+  onRejectClaim(
+    ticket.id,
+    claim.id,
+    rejectReason.trim()
+  );
+
+  setRejectingClaimId(null);
+  setRejectReason("");
+}}
+className="flex-1 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg"
+>
                               Confirm Reject
                             </button>
                             <button
