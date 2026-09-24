@@ -164,19 +164,15 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
       q.includes("pickup") ||
       q.includes("pick up")
     ) {
-      return `📍 Where to Collect Your Approved Item:
+      return `🤝 How to Complete an Approved Handover:
 
-• Location: Vivekanand Hall — Central Lost & Found Desk (Ground Floor, Room 104)
-• Incharge: Officer Marcus Vance / Campus Safety
-• Operating Hours:
-  - Monday – Friday: 8:00 AM – 7:00 PM
-  - Saturday: 10:00 AM – 3:00 PM
-  - Sunday: Closed (Security emergency support available at Main Gate)
+• Coordinate a safe meeting point on campus with the report creator.
+• Bring your Campus Student / Faculty ID if the reporter asks for identity confirmation.
+• Show your Handover Code from "My claims" (for example REFIND-XXXX).
+• Compare the item only at the time of handover; never post private verification details publicly.
+• Once the item is physically handed over, the report creator confirms the return and closes the report.
 
-What to bring:
-1. Your official Campus Student / Faculty ID card
-2. Your unique 6-digit Handover Code (visible under "My claims", e.g. REFIND-XXXX)
-3. Any passcodes for electronic devices if applicable.`;
+Portal Admin handles technical/support concerns and does not decide ownership.`;
     }
 
     if (
@@ -192,7 +188,7 @@ What to bring:
 2. Here you will see all your claims and their current stages:
   • Under Verification: The report creator is checking your proof of ownership.
   • Approved - Ready for Handover: Your claim has been verified! A 6-digit REFIND code is generated for you.
-  • Returned & Closed: The item was handed over to you at the desk.
+  • Returned & Closed: The item was handed over and the report was closed.
   • Rejected: Details did not match; you can provide more details.
 
 Tip: You will also receive an instant in-app notification when the status changes!`;
