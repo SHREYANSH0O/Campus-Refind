@@ -48,7 +48,7 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
 
   const isMasterAdmin =
     currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
-  const isAdmin = isPortalAdminRole(currentUser.role) || isMasterAdmin;
+  const isAdmin = isPortalAdminRole(currentUser.role);
 
   const openCount = supportRequests.filter((request) => request.status === "open").length;
   const progressCount = supportRequests.filter(
