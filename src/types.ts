@@ -13,11 +13,19 @@ export type ItemCategory =
   | "Watches & Jewelry"
   | "Other";
 
+export type UserRole = "Student" | "Faculty" | "Portal Admin" | "Campus Security";
+
+export const isPortalAdminRole = (role: UserRole) =>
+  role === "Portal Admin" || role === "Campus Security";
+
+export const displayRole = (role: UserRole) =>
+  isPortalAdminRole(role) ? "Portal Admin" : role;
+
 export interface CampusUser {
   id: string;
   name: string;
   email: string;
-  role: "Student" | "Faculty" | "Campus Security";
+  role: UserRole;
   department: string;
   campusId: string;
   avatarInitials: string;
@@ -32,7 +40,7 @@ export interface ClaimVerification {
   claimantId: string;
   claimantName: string;
   claimantEmail: string;
-  claimantRole: "Student" | "Faculty" | "Campus Security";
+  claimantRole: UserRole;
   proofDetails: string;
   contactNumber: string;
   proofAttachmentUrl?: string;
@@ -59,7 +67,7 @@ export interface ItemTicket {
   status: TicketStatus;
   reporterId: string;
   reporterName: string;
-  reporterRole: "Student" | "Faculty" | "Campus Security";
+  reporterRole: UserRole;
   reporterContact: string;
   createdAt: string;
   claims: ClaimVerification[];
@@ -99,4 +107,29 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   quickTopics?: boolean;
+}
+
+
+export type SupportIssueType =
+  | "Technical Bug"
+  | "Account Problem"
+  | "Report / Claim Issue"
+  | "Suspicious User"
+  | "Privacy Concern"
+  | "Other";
+
+export type SupportRequestStatus = "open" | "in_progress" | "resolved";
+
+export interface SupportRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  issueType: SupportIssueType;
+  subject: string;
+  description: string;
+  status: SupportRequestStatus;
+  createdAt: string;
+  updatedAt?: string;
+  adminReply?: string;
 }
