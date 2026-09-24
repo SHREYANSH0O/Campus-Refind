@@ -1,17 +1,7 @@
 import { CampusUser, ItemTicket, CampusNotification } from "../types";
 
-export const CAMPUS_USERS: CampusUser[] = [
-  {
-    id: "user-shreyansh-admin",
-    name: "Shreyansh Singh",
-    email: "shreyanshsingh105@gmail.com",
-    role: "Campus Security",
-    department: "Campus Safety & Central Lost Desk Admin",
-    campusId: "ADMIN-SEC-001",
-    avatarInitials: "SS",
-    joinedDate: "2026-01-01",
-  },
-];
+// Real users, including Campus Security/admin accounts, are loaded from Firebase.
+export const CAMPUS_USERS: CampusUser[] = [];
 
 export const CAMPUS_BUILDINGS = [
   "A Block",
