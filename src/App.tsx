@@ -185,7 +185,7 @@ export default function App() {
   // Subscribe to live notifications for current user
   useEffect(() => {
     if (!currentUser) return;
-    const unsubNotifs = subscribeToNotifications(currentUser.id, (cloudNotifs) => {
+    const unsubNotifs = subscribeToNotifications(currentUser, (cloudNotifs) => {
       setNotifications(cloudNotifs);
       localStorage.setItem("refind_notifications", JSON.stringify(cloudNotifs));
     });
