@@ -13,7 +13,7 @@ import {
   Calendar,
   Lock,
 } from "lucide-react";
-import { CampusUser } from "../types";
+import { CampusUser, displayRole, isPortalAdminRole } from "../types";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -78,8 +78,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="text-xs text-slate-300 flex items-center gap-1.5 mt-0.5">
                   {currentUser.role === "Student" && <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />}
                   {currentUser.role === "Faculty" && <Briefcase className="w-3.5 h-3.5 text-amber-400" />}
-                  {currentUser.role === "Campus Security" && <Shield className="w-3.5 h-3.5 text-blue-400" />}
-                  <span className="font-semibold">{currentUser.role}</span>
+                  {isPortalAdminRole(currentUser.role) && <Shield className="w-3.5 h-3.5 text-blue-400" />}
+                  <span className="font-semibold">{displayRole(currentUser.role)}</span>
                 </div>
               </div>
             </div>
@@ -120,9 +120,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span className="font-bold text-slate-700 text-[11px] uppercase tracking-wider block">
               Authorized Privileges
             </span>
-            {currentUser.role === "Campus Security" ? (
+            {isPortalAdminRole(currentUser.role) ? (
               <p className="text-slate-600 text-xs leading-relaxed">
-                You have <strong>Central Lost Desk Administrative Authority</strong> at Vivekanand Hall. You can inspect claims, verify claimant proof, approve/reject claims, and issue confidential pickup codes.
+                You have <strong>Portal Admin privileges</strong>. You can manage support concerns, user roles, and public registry oversight. Claim verification and item handover remain between the users involved.
               </p>
             ) : (
               <p className="text-slate-600 text-xs leading-relaxed">
