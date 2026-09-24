@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-campusrefind-8e52b25c-2715-4f09-b413-c75a4d58c6f2",
+      "rules": "firestore.rules"
+    }
+  ]
+}
