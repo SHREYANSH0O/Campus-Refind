@@ -66,6 +66,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {!isAdmin && (
             <button
               type="button"
               id="dashboard-report-lost-btn"
@@ -75,7 +76,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <PackagePlus className="w-4 h-4" />
               <span>Report Lost Item</span>
             </button>
+            )}
 
+            {!isAdmin && (
             <button
               type="button"
               id="dashboard-report-found-btn"
@@ -85,6 +88,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <PackagePlus className="w-4 h-4" />
               <span>Report Found Item</span>
             </button>
+            )}
 
             {onOpenAdminDesk && isAdmin && (
               <button
