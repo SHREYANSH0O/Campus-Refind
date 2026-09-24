@@ -40,9 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const isAdmin =
-    isPortalAdminRole(currentUser.role) ||
-    currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
+  const isAdmin = isPortalAdminRole(currentUser.role);
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
