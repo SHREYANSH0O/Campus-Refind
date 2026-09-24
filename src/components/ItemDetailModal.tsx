@@ -23,7 +23,7 @@ interface ItemDetailModalProps {
   currentUser: CampusUser;
   onOpenClaim: (ticket: ItemTicket) => void;
   onApproveClaim: (ticketId: string, claimId: string) => void;
-  onRejectClaim: (ticketId: string, claimId: string) => void;
+  onRejectClaim: (ticketId: string, claimId: string, rejectReason: string) => void;
   onCloseTicket: (ticketId: string, handoverNotes: string) => void;
 }
 
@@ -39,14 +39,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 }) => {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [handoverNotes, setHandoverNotes] = useState(
-    "Verified matching student ID card & proof details at Vivekanand Hall Central Desk."
+    "Ownership proof verified and the item was safely handed over to the approved claimant."
   );
 
   if (!isOpen) return null;
 
   const isReporter = ticket.reporterId === currentUser.id;
-  const isSecurity = currentUser.role === "Campus Security";
-  const canManageTicket = isReporter || isSecurity;
+  const canManageTicket = isReporter;
 
   const hasAlreadyClaimed = ticket.claims.some(
     (c) => c.claimantId === currentUser.id
@@ -260,7 +259,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   {totalClaimCount} claim{totalClaimCount === 1 ? "" : "s"} submitted
                 </div>
                 <div>
-                  Claimant identities, contact details, and ownership proof are private. Only the claimant, ticket reporter, and authorized Campus Security staff can review them.
+                  Claimant identities, contact details, and ownership proof are private. Only the claimant and the ticket reporter can review them.
                 </div>
               </div>
             ) : (
@@ -328,17 +327,25 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                           <span>Handover Code: <strong>{claim.handoverCode || "REFIND-VERIFIED"}</strong></span>
                         </div>
                         <span className="text-[11px] text-emerald-800">
-                          Collect at Vivekanand Hall Central Desk
+                          Use this code at the agreed campus handover point
                         </span>
                       </div>
                     )}
 
-                    {/* Verification Actions (Reporter or Officer can Approve / Reject) */}
+                    {/* Verification Actions (only the original reporter can Approve / Reject) */}
                     {canManageTicket && claim.status === "pending" && ticket.status !== "returned_closed" && (
                       <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-2 text-xs">
                         <button
                           type="button"
-                          onClick={() => onRejectClaim(ticket.id, claim.id)}
+                          onClick={() => {
+                            const reason = window.prompt(
+                              "Reason for declining this claim:",
+                              "Ownership proof did not match the item's private verification details."
+                            );
+                            if (reason?.trim()) {
+                              onRejectClaim(ticket.id, claim.id, reason.trim());
+                            }
+                          }}
                           className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 font-semibold rounded-lg transition"
                         >
                           Decline Claim
@@ -364,7 +371,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         <div className="p-4 border-t border-slate-100 bg-white shrink-0 flex items-center justify-between">
           <div className="text-xs text-slate-500 flex items-center gap-1.5">
             <Building className="w-4 h-4 text-slate-400" />
-            <span>Campus Lost & Found Desk • Vivekanand Hall Central Desk</span>
+            <span>Direct verified handover • Reporter + approved claimant</span>
           </div>
 
           <div className="flex items-center gap-2">
