@@ -36,9 +36,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const foundCount = tickets.filter((t) => t.type === "found" && t.status !== "returned_closed").length;
   const returnedCount = tickets.filter((t) => t.status === "returned_closed").length;
 
-  const isAdmin =
-    isPortalAdminRole(currentUser.role) ||
-    currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
+  const isAdmin = isPortalAdminRole(currentUser.role);
 
   const recentTickets = [...tickets]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
