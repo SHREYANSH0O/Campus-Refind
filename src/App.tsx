@@ -295,6 +295,7 @@ export default function App() {
 
   // Open report modal with specific type
   const handleOpenReport = (type: TicketType = "lost") => {
+    if (currentUser && isPortalAdminRole(currentUser.role)) return;
     setReportDefaultType(type);
     setIsReportModalOpen(true);
   };
@@ -338,7 +339,7 @@ export default function App() {
     proofDetails: string,
     contactNumber: string
   ) => {
-    if (!currentUser) return;
+    if (!currentUser || isPortalAdminRole(currentUser.role)) return;
     const claimId = `claim-${Date.now()}`;
     const newClaim = {
       id: claimId,
@@ -862,6 +863,7 @@ if (rejectedTicket && rejectedClaim) {
 
           <div className="flex items-center gap-3">
             {/* Quick New Report Button in Header */}
+            {!isPortalAdminRole(currentUser.role) && (
             <button
               type="button"
               id="header-report-btn"
@@ -871,6 +873,7 @@ if (rejectedTicket && rejectedClaim) {
               <PackagePlus className="w-3.5 h-3.5" />
               <span>New Report</span>
             </button>
+            )}
 
             {/* Notifications Button */}
             <button
