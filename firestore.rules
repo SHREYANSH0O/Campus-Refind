@@ -117,7 +117,9 @@ service cloud.firestore {
           || (request.resource.data.ticketId is string
             && exists(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId)/claims/$(request.resource.data.userId)))
           || (exists(/databases/$(database)/documents/users/$(request.resource.data.userId))
-            && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.role in ["Portal Admin", "Campus Security"]));
+            && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.role in ["Portal Admin", "Campus Security"]
+            && request.resource.data.type == "info"
+            && !request.resource.data.keys().hasAny(["ticketId"])));
       allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"]);
