@@ -71,7 +71,7 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
             </div>
             <h4 className="text-lg font-bold text-slate-900">Claim Successfully Submitted!</h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Your proof of ownership has been forwarded to the reporter and Campus Security Desk for verification.
+              Your proof of ownership has been sent privately to the report creator for verification.
             </p>
           </div>
         ) : (
