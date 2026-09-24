@@ -263,7 +263,7 @@ export default function App() {
       timestamp: "Just now",
       read: false,
       type,
-      ticketId,
+      ...(ticketId ? { ticketId } : {}),
     };
 
     saveNotificationToFirestore(notification);
