@@ -40,7 +40,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                 Campus Notifications
               </h3>
               <p className="text-xs text-slate-500">
-                Claim submissions, verification updates, and return receipts
+                Account alerts and portal updates
               </p>
             </div>
           </div>
@@ -76,7 +76,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
               <div className="space-y-1 max-w-xs mx-auto">
                 <h4 className="font-bold text-slate-800 text-sm">No Notifications Yet</h4>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  When you file a report, someone claims your item, or your claim is approved at the desk, live updates will appear here.
+                  New account, support, and lost/found updates relevant to you will appear here.
                 </p>
               </div>
             </div>
