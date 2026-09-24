@@ -366,7 +366,7 @@ export const ReportItemModal: React.FC<ReportItemModalProps> = ({
 
             {/* Reporter Info Preview */}
             <div className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs text-slate-600">
-              <span>Posting as: <strong className="text-slate-900">{currentUser.name}</strong> ({currentUser.role} • {currentUser.campusId})</span>
+              <span>Posting as: <strong className="text-slate-900">{currentUser.name}</strong> ({displayRole(currentUser.role)} • {currentUser.campusId})</span>
               <span className="text-blue-600 font-medium">Verified Campus ID</span>
             </div>
 
