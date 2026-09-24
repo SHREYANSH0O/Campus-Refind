@@ -801,7 +801,7 @@ if (rejectedTicket && rejectedClaim) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Quick Raise Ticket Button in Header */}
+            {/* Quick New Report Button in Header */}
             <button
               type="button"
               id="header-report-btn"
@@ -809,7 +809,7 @@ if (rejectedTicket && rejectedClaim) {
               className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
             >
               <PackagePlus className="w-3.5 h-3.5" />
-              <span>Raise Ticket</span>
+              <span>New Report</span>
             </button>
 
             {/* Notifications Button */}
