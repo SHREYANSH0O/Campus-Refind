@@ -190,7 +190,7 @@ What to bring:
 
 1. Click on "My claims" in the left-hand navigation sidebar.
 2. Here you will see all your claims and their current stages:
-  • Under Verification: The finder or Campus Security is checking your proof of ownership.
+  • Under Verification: The report creator is checking your proof of ownership.
   • Approved - Ready for Handover: Your claim has been verified! A 6-digit REFIND code is generated for you.
   • Returned & Closed: The item was handed over to you at the desk.
   • Rejected: Details did not match; you can provide more details.
@@ -205,13 +205,13 @@ Tip: You will also receive an instant in-app notification when the status change
       return `⏱️ What Happens After You Submit a Claim:
 
 1. Verification Review:
-   The finder or Campus Security Desk compares your submitted proof against the item's private verification notes (such as secret scratches, wallpaper, or serial number).
+   The report creator compares your submitted proof against the item's private verification notes (such as secret scratches, wallpaper, or serial number).
 
 2. Approval & Handover Code:
    Once confirmed, an approval notification is sent and a unique 6-digit handover code (e.g. REFIND-8841) is issued under "My claims".
 
 3. Safe Collection:
-   Visit the Vivekanand Hall Central Desk, present your Campus ID and code, and safely receive your belonging.`;
+   Coordinate a safe campus meeting with the report creator, share the handover code, and receive your belonging.`;
     }
 
     if (
@@ -240,7 +240,7 @@ Tip: You will also receive an instant in-app notification when the status change
 2. Click on the item card to open its details.
 3. Click "Claim this Item".
 4. Fill in the ownership verification form with distinguishing details (e.g. stickers, wallpaper, serial number, or exact contents).
-5. Submit your claim for review by Campus Security or the finder.`;
+5. Submit your claim for private review by the report creator.`;
     }
 
     // Check matching items in currentTickets
