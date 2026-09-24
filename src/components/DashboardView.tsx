@@ -12,7 +12,7 @@ import {
   Building,
   ShieldCheck,
 } from "lucide-react";
-import { ItemTicket, CampusUser } from "../types";
+import { ItemTicket, CampusUser, isPortalAdminRole } from "../types";
 
 interface DashboardViewProps {
   tickets: ItemTicket[];
@@ -36,9 +36,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const foundCount = tickets.filter((t) => t.type === "found" && t.status !== "returned_closed").length;
   const returnedCount = tickets.filter((t) => t.status === "returned_closed").length;
 
-  const isSecurityOfficer =
-    currentUser?.role === "Campus Security" ||
-    currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com";
+  const isAdmin =
+    isPortalAdminRole(currentUser.role) ||
+    currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
 
   const recentTickets = [...tickets]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -88,7 +88,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>Report Found Item</span>
             </button>
 
-            {onOpenAdminDesk && isSecurityOfficer && (
+            {onOpenAdminDesk && isAdmin && (
               <button
                 type="button"
                 id="dashboard-admin-desk-btn"
@@ -96,7 +96,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-bold transition shadow-lg shadow-blue-950/40 flex items-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4 text-blue-200" />
-                <span>Security Desk</span>
+                <span>Admin &amp; Support</span>
               </button>
             )}
           </div>
@@ -158,10 +158,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div className="space-y-1">
             <div className="font-bold text-sm text-white">
-              Campus Return Protocol & Central Desk Pickup
+              Verified Return Protocol
             </div>
             <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Found items can be deposited at or claimed from the <strong>Vivekanand Hall Central Desk</strong>. To claim, provide verifiable proof (lockscreen wallpaper, serial #, or secret marks). Once verified, the ticket will be successfully closed!
+              Found items can be claimed using private ownership proof (lockscreen wallpaper, serial #, or secret marks). The report creator verifies the claim, coordinates a safe campus handover, and closes the report after the item is returned.
             </p>
           </div>
         </div>
