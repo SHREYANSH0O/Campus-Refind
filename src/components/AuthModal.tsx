@@ -110,7 +110,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 Private Portal &amp; Session Isolation
               </span>
               <p className="text-blue-800/90 leading-relaxed text-[11px]">
-                This portal is strictly authenticated to your account. Your credentials and tickets are private to your session and will <strong>never</strong> appear in or be accessible from any other user&apos;s portal.
+                Your credentials and private claim details are isolated to your account. Public lost/found report information remains visible to signed-in campus members so items can be matched and returned.
               </p>
             </div>
           </div>
