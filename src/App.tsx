@@ -269,6 +269,30 @@ export default function App() {
     saveNotificationToFirestore(notification);
   };
 
+  const markCurrentNotificationsRead = () => {
+    const unreadNotifications = notifications.filter(
+      (notification) => !notification.read
+    );
+    if (unreadNotifications.length === 0) return;
+
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        unreadNotifications.some((unread) => unread.id === notification.id)
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
+
+    markNotificationsReadInFirestore(unreadNotifications).catch((error) => {
+      console.error("Notifications could not be marked as read:", error);
+    });
+  };
+
+  const handleOpenNotifications = () => {
+    markCurrentNotificationsRead();
+    setIsNotificationsModalOpen(true);
+  };
+
 
   // Handle Tab navigation
   const handleSelectTab = (tab: string) => {
@@ -278,7 +302,7 @@ export default function App() {
       return;
     }
     if (tab === "notifications") {
-      setIsNotificationsModalOpen(true);
+      handleOpenNotifications();
       return;
     }
     if (tab === "admin_desk") {
@@ -728,51 +752,10 @@ if (rejectedTicket && rejectedClaim) {
     localStorage.removeItem("refind_notifications");
   };
 
-  // Mark all notifications read
+  // Manual fallback uses the same behavior as opening the panel.
   const handleMarkAllRead = () => {
-    const unreadNotifications = notifications.filter((notification) => !notification.read);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    markNotificationsReadInFirestore(unreadNotifications).catch((error) => {
-      console.error("Notifications could not be marked as read:", error);
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          unreadNotifications.some((unread) => unread.id === notification.id)
-            ? { ...notification, read: false }
-            : notification
-        )
-      );
-    });
+    markCurrentNotificationsRead();
   };
-
-  // Opening the notification panel means the user has viewed every
-  // notification that was unread at that moment. Future notifications stay
-  // unread until the user opens the panel again, so the badge can reappear.
-  useEffect(() => {
-    if (!isNotificationsModalOpen) return;
-
-    const unreadNotifications = notifications.filter(
-      (notification) => !notification.read
-    );
-    if (unreadNotifications.length === 0) return;
-
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        unreadNotifications.some((unread) => unread.id === notification.id)
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-
-    markNotificationsReadInFirestore(unreadNotifications).catch((error) => {
-      console.error(
-        "Notifications could not be automatically marked as read:",
-        error
-      );
-    });
-    // Intentionally trigger only when the panel opens. A later notification
-    // should remain unread so the user gets a fresh badge/indicator.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNotificationsModalOpen]);
 
   // Select ticket by ID (e.g. from notification)
   const handleSelectTicketById = (ticketId: string) => {
@@ -925,7 +908,7 @@ if (rejectedTicket && rejectedClaim) {
             {/* Notifications Button */}
             <button
               type="button"
-              onClick={() => setIsNotificationsModalOpen(true)}
+              onClick={handleOpenNotifications}
               aria-label={unreadNotificationsCount > 0 ? `Open notifications (${unreadNotificationsCount} unread)` : "Open notifications"}
               className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition relative"
             >
