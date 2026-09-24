@@ -83,10 +83,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                 Portal &amp; Registry
               </span>
-              <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded-full border border-emerald-800/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Cloud Live</span>
-              </span>
             </div>
           </div>
         </div>
