@@ -142,7 +142,7 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white rounded-2xl border border-slate-200 p-4">
           <div className="text-xs text-slate-500">Open concerns</div>
           <div className="text-2xl font-black text-blue-600 mt-1">{openCount}</div>
