@@ -1,16 +1,21 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
   query,
-  orderBy,
+  where,
   onSnapshot,
 } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -20,11 +25,13 @@ import {
 } from "firebase/auth";
 import { db, auth } from "../firebase";
 import { CampusUser, ItemTicket, CampusNotification, ClaimVerification } from "../types";
-import { CAMPUS_USERS, INITIAL_TICKETS } from "../data/mockData";
 
 const USERS_COLLECTION = "users";
 const TICKETS_COLLECTION = "tickets";
 const NOTIFICATIONS_COLLECTION = "notifications";
+
+const wait = (milliseconds: number) =>
+  new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 const PRE_REPORTED_TICKET_IDS = [
   "ticket-101",
@@ -47,67 +54,78 @@ const LEGACY_MOCK_USER_IDS = [
 ];
 
 /**
- * Initialize base collections in Firestore if they don't exist yet,
- * and clean up any pre-reported sample tickets from previous runs.
- */
-export async function seedFirestoreIfEmpty() {
-  try {
-    // Ensure default users exist in Firestore
-    for (const user of CAMPUS_USERS) {
-      await setDoc(doc(db, USERS_COLLECTION, user.id), {
-        ...user,
-        createdAt: new Date().toISOString(),
-      }, { merge: true });
-    }
-
-    // Automatically purge pre-reported mock tickets from Firestore
-    for (const legacyId of PRE_REPORTED_TICKET_IDS) {
-      try {
-        await deleteDoc(doc(db, TICKETS_COLLECTION, legacyId));
-      } catch (err) {
-        // Silently skip if document not found or offline
-      }
-    }
-
-    // Automatically purge pre-reported mock notifications from Firestore
-    for (const legacyNotifId of PRE_REPORTED_NOTIF_IDS) {
-      try {
-        await deleteDoc(doc(db, NOTIFICATIONS_COLLECTION, legacyNotifId));
-      } catch (err) {
-        // Silently skip if document not found or offline
-      }
-    }
-
-    // Automatically purge pre-reported mock bot users from Firestore
-    for (const legacyUserId of LEGACY_MOCK_USER_IDS) {
-      try {
-        await deleteDoc(doc(db, USERS_COLLECTION, legacyUserId));
-      } catch (err) {
-        // Silently skip if document not found or offline
-      }
-    }
-  } catch (error) {
-    console.warn("Firestore seed note (may have offline or permissions fallback):", error);
-  }
-}
-
-/**
  * Sync tickets in real-time from Firestore.
  * Filters out any residual pre-reported mock items so only real user tickets are rendered.
  */
-export function subscribeToTickets(onUpdate: (tickets: ItemTicket[]) => void) {
+export function subscribeToTickets(
+  viewer: CampusUser,
+  onUpdate: (tickets: ItemTicket[]) => void
+) {
   try {
-    const q = query(collection(db, TICKETS_COLLECTION));
+    const ticketsRef = collection(db, TICKETS_COLLECTION);
+    const q =
+      viewer.role === "Campus Security"
+        ? query(ticketsRef)
+        : query(ticketsRef, where("privacyVersion", "==", 2));
     return onSnapshot(
       q,
-      (snapshot) => {
-        const list: ItemTicket[] = [];
-        snapshot.forEach((docSnap) => {
-          if (!PRE_REPORTED_TICKET_IDS.includes(docSnap.id)) {
-            list.push({ ...docSnap.data(), id: docSnap.id } as ItemTicket);
-          }
-        });
-        // Pass the live real tickets list (even if empty)
+      async (snapshot) => {
+        const ticketDocs = snapshot.docs.filter(
+          (ticketDoc) => !PRE_REPORTED_TICKET_IDS.includes(ticketDoc.id)
+        );
+        const list = await Promise.all(
+          ticketDocs.map(async (ticketDoc) => {
+            const rawTicket = { ...ticketDoc.data(), id: ticketDoc.id } as ItemTicket;
+            const {
+              claims: legacyClaims = [],
+              reporterContact: legacyReporterContact = "",
+              secretIdentifiers: legacySecretIdentifiers,
+              handoverNotes: legacyHandoverNotes,
+              ...publicTicket
+            } = rawTicket;
+            const canManageTicket =
+              viewer.role === "Campus Security" || publicTicket.reporterId === viewer.id;
+            const claimsRef = collection(db, TICKETS_COLLECTION, ticketDoc.id, "claims");
+            const claimsSnapshot = await getDocs(
+              canManageTicket
+                ? claimsRef
+                : query(claimsRef, where("claimantId", "==", viewer.id))
+            );
+            const storedClaims = claimsSnapshot.docs.map(
+              (claimDoc) => ({
+                ...claimDoc.data(),
+                id: claimDoc.data().id || claimDoc.id,
+              }) as ClaimVerification
+            );
+            const claims =
+              storedClaims.length > 0 || !canManageTicket
+                ? storedClaims
+                : legacyClaims;
+
+            let privateDetails: Partial<ItemTicket> = canManageTicket
+              ? {
+                  reporterContact: legacyReporterContact,
+                  secretIdentifiers: legacySecretIdentifiers,
+                  handoverNotes: legacyHandoverNotes,
+                }
+              : {};
+            if (canManageTicket || claims.length > 0) {
+              const privateSnapshot = await getDoc(
+                doc(db, TICKETS_COLLECTION, ticketDoc.id, "private", "details")
+              );
+              if (privateSnapshot.exists()) {
+                privateDetails = privateSnapshot.data() as Partial<ItemTicket>;
+              }
+            }
+
+            return {
+              ...publicTicket,
+              ...privateDetails,
+              reporterContact: privateDetails.reporterContact || "",
+              claims,
+            } as ItemTicket;
+          })
+        );
         onUpdate(list);
       },
       (err) => {
@@ -123,11 +141,54 @@ export function subscribeToTickets(onUpdate: (tickets: ItemTicket[]) => void) {
 /**
  * Save or update a ticket in Firestore
  */
-export async function saveTicketToFirestore(ticket: ItemTicket) {
+export async function saveTicketToFirestore(ticket: ItemTicket, actor: CampusUser) {
   try {
-    await setDoc(doc(db, TICKETS_COLLECTION, ticket.id), ticket, { merge: true });
+    const {
+      claims,
+      reporterContact,
+      secretIdentifiers,
+      handoverNotes,
+      ...publicTicket
+    } = ticket;
+    const ticketRef = doc(db, TICKETS_COLLECTION, ticket.id);
+    const canManageTicket =
+      actor.role === "Campus Security" || actor.id === ticket.reporterId;
+
+    if (canManageTicket) {
+      await setDoc(ticketRef, { ...publicTicket, privacyVersion: 2 });
+      await setDoc(
+        doc(db, TICKETS_COLLECTION, ticket.id, "private", "details"),
+        {
+          reporterId: ticket.reporterId,
+          reporterContact,
+          secretIdentifiers: secretIdentifiers || "",
+          handoverNotes: handoverNotes || "",
+        },
+        { merge: true }
+      );
+      await Promise.all(
+        claims.map((claim) =>
+          setDoc(
+            doc(db, TICKETS_COLLECTION, ticket.id, "claims", claim.claimantId),
+            claim,
+            { merge: true }
+          )
+        )
+      );
+      return;
+    }
+
+    const ownClaim = claims.find((claim) => claim.claimantId === actor.id);
+    if (!ownClaim) throw new Error("A claimant may only save their own claim.");
+    await setDoc(
+      doc(db, TICKETS_COLLECTION, ticket.id, "claims", actor.id),
+      ownClaim,
+      { merge: true }
+    );
+    await updateDoc(ticketRef, { status: "under_verification" });
   } catch (error) {
     console.error("Error saving ticket to Firestore:", error);
+    throw error;
   }
 }
 
@@ -145,9 +206,15 @@ export async function deleteTicketFromFirestore(ticketId: string) {
 /**
  * Subscribe to all users in Firestore
  */
-export function subscribeToUsers(onUpdate: (users: CampusUser[]) => void) {
+export function subscribeToUsers(
+  onUpdate: (users: CampusUser[]) => void,
+  securityOnly = false
+) {
   try {
-    const q = query(collection(db, USERS_COLLECTION));
+    const usersRef = collection(db, USERS_COLLECTION);
+    const q = securityOnly
+      ? query(usersRef, where("role", "==", "Campus Security"))
+      : query(usersRef);
     return onSnapshot(
       q,
       (snapshot) => {
@@ -182,6 +249,13 @@ export async function saveUserToFirestore(user: CampusUser) {
   }
 }
 
+export async function getCampusUserProfile(userId: string) {
+  const snapshot = await getDoc(doc(db, USERS_COLLECTION, userId));
+  return snapshot.exists()
+    ? ({ ...snapshot.data(), id: snapshot.id } as CampusUser)
+    : null;
+}
+
 /**
  * Sync Notifications
  */
@@ -190,7 +264,10 @@ export function subscribeToNotifications(
   onUpdate: (notifs: CampusNotification[]) => void
 ) {
   try {
-    const q = query(collection(db, NOTIFICATIONS_COLLECTION));
+    const q = query(
+      collection(db, NOTIFICATIONS_COLLECTION),
+      where("userId", "==", userId)
+    );
     return onSnapshot(
       q,
       (snapshot) => {
@@ -224,6 +301,20 @@ export async function saveNotificationToFirestore(notif: CampusNotification) {
   }
 }
 
+export async function markNotificationsReadInFirestore(
+  notifications: CampusNotification[]
+) {
+  await Promise.all(
+    notifications
+      .filter((notification) => !notification.read)
+      .map((notification) =>
+        updateDoc(doc(db, NOTIFICATIONS_COLLECTION, notification.id), {
+          read: true,
+        })
+      )
+  );
+}
+
 
 /**
  * Register with Email and Password and send real email verification
@@ -233,6 +324,7 @@ export async function registerWithEmailVerification(
   pass: string,
   displayName: string
 ): Promise<{ firebaseUser: FirebaseUser }> {
+  await setPersistence(auth, browserSessionPersistence);
   const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
   if (displayName) {
     try {
@@ -251,10 +343,28 @@ export async function registerWithEmailVerification(
  */
 export async function loginWithEmail(
   email: string,
-  pass: string
+  pass: string,
+  rememberSession = false
 ): Promise<{ firebaseUser: FirebaseUser }> {
-  const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+  await setPersistence(
+    auth,
+    rememberSession ? browserLocalPersistence : browserSessionPersistence
+  );
+  let userCredential;
+  try {
+    userCredential = await signInWithEmailAndPassword(auth, email, pass);
+  } catch (error) {
+    if ((error as { code?: string })?.code !== "auth/network-request-failed") {
+      throw error;
+    }
+    await wait(600);
+    userCredential = await signInWithEmailAndPassword(auth, email, pass);
+  }
   return { firebaseUser: userCredential.user };
+}
+
+export function requestPasswordReset(email: string) {
+  return sendPasswordResetEmail(auth, email);
 }
 
 /**
