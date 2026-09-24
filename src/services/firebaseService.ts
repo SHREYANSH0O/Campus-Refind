@@ -360,25 +360,57 @@ export async function getCampusUserProfile(userId: string) {
  * Sync Notifications
  */
 export function subscribeToNotifications(
-  userId: string,
+  viewer: CampusUser,
   onUpdate: (notifs: CampusNotification[]) => void
 ) {
   try {
     const q = query(
       collection(db, NOTIFICATIONS_COLLECTION),
-      where("userId", "==", userId)
+      where("userId", "==", viewer.id)
     );
     return onSnapshot(
       q,
       (snapshot) => {
         const list: CampusNotification[] = [];
+        const legacyAdminItemNotifications: string[] = [];
+
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as CampusNotification;
-          if (data.userId === userId && !PRE_REPORTED_NOTIF_IDS.includes(docSnap.id)) {
-            list.push({ ...data, id: docSnap.id });
+          if (
+            data.userId !== viewer.id ||
+            PRE_REPORTED_NOTIF_IDS.includes(docSnap.id)
+          ) {
+            return;
           }
+
+          // Portal Admin is intentionally excluded from lost/found ownership
+          // workflows. Only non-ticket portal/support alerts belong in the
+          // admin notification feed.
+          if (
+            isPortalAdminRole(viewer.role) &&
+            (data.type !== "info" || Boolean(data.ticketId))
+          ) {
+            legacyAdminItemNotifications.push(docSnap.id);
+            return;
+          }
+
+          list.push({ ...data, id: docSnap.id });
         });
+
         onUpdate(list);
+
+        // Remove historical item/claim alerts that were created for admin
+        // before the portal-admin privacy model was introduced.
+        legacyAdminItemNotifications.forEach((notificationId) => {
+          deleteDoc(doc(db, NOTIFICATIONS_COLLECTION, notificationId)).catch(
+            (error) => {
+              console.warn(
+                "Legacy admin item notification could not be removed:",
+                error
+              );
+            }
+          );
+        });
       },
       (err) => {
         console.warn("Firestore notifications error:", err);
