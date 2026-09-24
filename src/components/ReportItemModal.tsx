@@ -11,7 +11,7 @@ import {
   Sparkles,
   Lock,
 } from "lucide-react";
-import { TicketType, ItemCategory, CampusUser } from "../types";
+import { TicketType, ItemCategory, CampusUser, displayRole } from "../types";
 import { CAMPUS_LOCATIONS } from "../data/mockData";
 
 interface ReportItemModalProps {
