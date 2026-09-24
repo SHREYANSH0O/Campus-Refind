@@ -744,10 +744,9 @@ if (rejectedTicket && rejectedClaim) {
     });
   };
 
-  // Opening the notification panel means the user has seen every
-  // notification currently visible. Keep marking newly arriving notifications
-  // as read while the panel remains open; once it closes, future notifications
-  // become unread again and restore the badge.
+  // Opening the notification panel means the user has viewed every
+  // notification that was unread at that moment. Future notifications stay
+  // unread until the user opens the panel again, so the badge can reappear.
   useEffect(() => {
     if (!isNotificationsModalOpen) return;
 
@@ -769,15 +768,11 @@ if (rejectedTicket && rejectedClaim) {
         "Notifications could not be automatically marked as read:",
         error
       );
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          unreadNotifications.some((unread) => unread.id === notification.id)
-            ? { ...notification, read: false }
-            : notification
-        )
-      );
     });
-  }, [isNotificationsModalOpen, notifications]);
+    // Intentionally trigger only when the panel opens. A later notification
+    // should remain unread so the user gets a fresh badge/indicator.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNotificationsModalOpen]);
 
   // Select ticket by ID (e.g. from notification)
   const handleSelectTicketById = (ticketId: string) => {
