@@ -12,7 +12,7 @@ import {
   Building,
   ShieldCheck,
 } from "lucide-react";
-import { ItemTicket, CampusUser, isPortalAdminRole } from "../types";
+import { ItemTicket, CampusUser, isPortalAdminRole, displayRole } from "../types";
 
 interface DashboardViewProps {
   tickets: ItemTicket[];
@@ -285,7 +285,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                     <div className="mt-1 text-[11px] text-slate-400 flex items-center justify-between">
                       <span>{ticket.date}</span>
-                      <span>By {ticket.reporterName} ({ticket.reporterRole})</span>
+                      <span>By {ticket.reporterName} ({displayRole(ticket.reporterRole)})</span>
                     </div>
                   </div>
 
