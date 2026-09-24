@@ -744,6 +744,41 @@ if (rejectedTicket && rejectedClaim) {
     });
   };
 
+  // Opening the notification panel means the user has seen every
+  // notification currently visible. Keep marking newly arriving notifications
+  // as read while the panel remains open; once it closes, future notifications
+  // become unread again and restore the badge.
+  useEffect(() => {
+    if (!isNotificationsModalOpen) return;
+
+    const unreadNotifications = notifications.filter(
+      (notification) => !notification.read
+    );
+    if (unreadNotifications.length === 0) return;
+
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        unreadNotifications.some((unread) => unread.id === notification.id)
+          ? { ...notification, read: true }
+          : notification
+      )
+    );
+
+    markNotificationsReadInFirestore(unreadNotifications).catch((error) => {
+      console.error(
+        "Notifications could not be automatically marked as read:",
+        error
+      );
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          unreadNotifications.some((unread) => unread.id === notification.id)
+            ? { ...notification, read: false }
+            : notification
+        )
+      );
+    });
+  }, [isNotificationsModalOpen, notifications]);
+
   // Select ticket by ID (e.g. from notification)
   const handleSelectTicketById = (ticketId: string) => {
     const target = tickets.find((t) => t.id === ticketId);
