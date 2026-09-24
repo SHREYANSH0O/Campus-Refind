@@ -1,31 +1,111 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // User profiles
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if true;
+    function isSelf(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Item tickets
-    match /tickets/{ticketId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+    function isSecurity() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Campus Security";
+    }
 
-      // Subcollection for claims
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isSecurity()
+        || (isAuthenticated() && resource.data.role == "Campus Security");
+      allow create: if isSelf(userId)
+        && request.resource.data.id == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == "Student"
+        && !request.resource.data.keys().hasAny(["password"]);
+      allow update: if isSecurity()
+        || (isSelf(userId)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.role == resource.data.role
+          && !request.resource.data.keys().hasAny(["password"]));
+      allow delete: if isSecurity();
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated()
+        && ((resource.data.privacyVersion == 2
+          && !resource.data.keys().hasAny([
+            "reporterContact",
+            "secretIdentifiers",
+            "handoverNotes",
+            "claims"
+          ])) || resource.data.reporterId == request.auth.uid || isSecurity());
+      allow create: if isAuthenticated()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.privacyVersion == 2
+        && !request.resource.data.keys().hasAny([
+          "reporterContact",
+          "secretIdentifiers",
+          "handoverNotes",
+          "claims"
+        ]);
+      allow update: if isSecurity()
+        || (isAuthenticated() && resource.data.reporterId == request.auth.uid)
+        || (isAuthenticated()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"])
+          && request.resource.data.status == "under_verification");
+      allow delete: if isSecurity()
+        || (isAuthenticated() && resource.data.reporterId == request.auth.uid);
+
+      match /private/{privateId} {
+        function isTicketReporter() {
+          return isAuthenticated()
+            && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid;
+        }
+
+        function isTicketClaimant() {
+          return isAuthenticated()
+            && exists(/databases/$(database)/documents/tickets/$(ticketId)/claims/$(request.auth.uid));
+        }
+
+        allow read: if isSecurity() || isTicketReporter() || isTicketClaimant();
+        allow create, update, delete: if isSecurity() || isTicketReporter();
+      }
+
       match /claims/{claimId} {
-        allow read, write: if true;
+        allow read: if isSecurity()
+          || (isAuthenticated() && resource.data.claimantId == request.auth.uid)
+          || (isAuthenticated()
+            && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid);
+        allow create: if isAuthenticated()
+          && claimId == request.auth.uid
+          && request.resource.data.claimantId == request.auth.uid;
+        allow update, delete: if isSecurity()
+          || (isAuthenticated()
+            && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid);
       }
     }
 
-    // Notifications
     match /notifications/{notificationId} {
-      allow read, write: if true;
+      function relatedTicket() {
+        return get(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId));
+      }
+
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && (request.resource.data.userId == request.auth.uid
+          || isSecurity()
+          || (request.resource.data.ticketId is string
+            && relatedTicket().data.reporterId == request.resource.data.userId)
+          || (request.resource.data.ticketId is string
+            && exists(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId)/claims/$(request.resource.data.userId)))
+          || (exists(/databases/$(database)/documents/users/$(request.resource.data.userId))
+            && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.role == "Campus Security"));
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"]);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
   }
 }
