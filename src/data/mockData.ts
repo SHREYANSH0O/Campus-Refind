@@ -9,7 +9,6 @@ export const CAMPUS_USERS: CampusUser[] = [
     department: "Campus Safety & Central Lost Desk Admin",
     campusId: "ADMIN-SEC-001",
     avatarInitials: "SS",
-    password: "admin",
     joinedDate: "2026-01-01",
   },
 ];
