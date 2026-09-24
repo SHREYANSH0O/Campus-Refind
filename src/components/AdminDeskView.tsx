@@ -386,10 +386,12 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
                   <span>Officer Handover Sign-off</span>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-400">
+                  <label htmlFor="desk-handover-note" className="text-[10px] uppercase font-bold text-slate-400">
                     Handover &amp; ID Verification Notes
                   </label>
                   <textarea
+                    id="desk-handover-note"
+                    name="desk-handover-note"
                     value={handoverNote}
                     onChange={(e) => setHandoverNote(e.target.value)}
                     rows={2}
@@ -617,6 +619,9 @@ export const AdminDeskView: React.FC<AdminDeskViewProps> = ({
                       {rejectingClaimId === claim.id ? (
                         <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
                           <input
+                            id={`claim-rejection-${claim.id}`}
+                            name="claim-rejection-reason"
+                            aria-label="Reason for rejecting this claim"
                             type="text"
                             placeholder="Reason for rejection..."
                             value={rejectReason}
@@ -934,6 +939,9 @@ className="flex-1 py-1.5 bg-rose-600 text-white text-xs font-bold rounded-lg"
             <div className="relative flex-1 max-w-md">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
+                id="admin-user-search"
+                name="admin-user-search"
+                aria-label="Search registered campus members"
                 type="text"
                 value={userSearchQuery}
                 onChange={(e) => setUserSearchQuery(e.target.value)}

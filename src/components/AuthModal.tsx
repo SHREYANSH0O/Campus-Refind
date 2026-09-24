@@ -49,7 +49,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close campus profile"
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 rounded-xl transition"
           >
             <X className="w-5 h-5" />
@@ -134,6 +136,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
           {onLogout ? (
             <button
+              type="button"
               onClick={() => {
                 onClose();
                 onLogout();
@@ -147,7 +150,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div />
           )}
 
-          <button
+           <button
+            type="button"
             onClick={onClose}
             className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition active:scale-[0.98]"
           >

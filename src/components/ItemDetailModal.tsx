@@ -53,6 +53,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   );
 
   const approvedClaim = ticket.claims.find((c) => c.status === "approved");
+  const visibleClaims = canManageTicket
+    ? ticket.claims
+    : ticket.claims.filter((claim) => claim.claimantId === currentUser.id);
 
   const getStatusBadge = () => {
     switch (ticket.status) {
@@ -82,7 +85,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
+      <div role="dialog" aria-modal="true" aria-labelledby="item-detail-title" className="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-2.5 flex-wrap">
@@ -101,7 +104,9 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             {getStatusBadge()}
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close item details"
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 rounded-xl transition"
           >
             <X className="w-5 h-5" />
@@ -150,7 +155,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             {/* Right: Item Details */}
             <div className="md:col-span-2 space-y-3.5">
               <div>
-                <h2 className="text-xl font-bold text-slate-900 leading-snug">
+                <h2 id="item-detail-title" className="text-xl font-bold text-slate-900 leading-snug">
                   {ticket.title}
                 </h2>
                 <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
@@ -195,9 +200,15 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     <div className="text-slate-500">{ticket.reporterRole}</div>
                   </div>
                 </div>
-                <div className="text-right text-slate-500">
-                  <div>Contact: {ticket.reporterContact}</div>
-                </div>
+                {ticket.reporterContact ? (
+                  <div className="text-right text-slate-500">
+                    <div>Contact: {ticket.reporterContact}</div>
+                  </div>
+                ) : (
+                  <div className="text-right text-slate-400 max-w-[180px]">
+                    Contact details are private and handled through the Campus Desk.
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -223,10 +234,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
-                <span>Submitted Claims ({ticket.claims.length})</span>
+                <span>{canManageTicket ? `Submitted Claims (${ticket.claims.length})` : visibleClaims.length > 0 ? "Your Submitted Claim" : "Claims are private"}</span>
               </h3>
               {ticket.status !== "returned_closed" && !isReporter && !hasAlreadyClaimed && (
                 <button
+                  type="button"
                   id="claim-this-item-btn"
                   onClick={() => onOpenClaim(ticket)}
                   className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
@@ -240,9 +252,13 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs">
                 No claims have been submitted yet. Campus members can submit ownership verification to initiate return.
               </div>
+            ) : visibleClaims.length === 0 ? (
+              <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs">
+                Claimant identities, contact details, and ownership proof are private. Only the claimant, ticket reporter, and authorized Campus Security staff can review them.
+              </div>
             ) : (
               <div className="space-y-3">
-                {ticket.claims.map((claim) => (
+                {visibleClaims.map((claim) => (
                   <div
                     key={claim.id}
                     className={`p-4 rounded-2xl border transition ${
@@ -314,12 +330,14 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     {canManageTicket && claim.status === "pending" && ticket.status !== "returned_closed" && (
                       <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-2 text-xs">
                         <button
+                          type="button"
                           onClick={() => onRejectClaim(ticket.id, claim.id)}
                           className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 font-semibold rounded-lg transition"
                         >
                           Decline Claim
                         </button>
                         <button
+                          type="button"
                           onClick={() => onApproveClaim(ticket.id, claim.id)}
                           className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-xs flex items-center gap-1.5"
                         >
@@ -344,6 +362,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition"
             >
@@ -353,6 +372,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             {/* Confirm Return & Close Ticket Action */}
             {canManageTicket && ticket.status !== "returned_closed" && (
               <button
+                type="button"
                 id="confirm-return-close-btn"
                 onClick={() => setShowCloseDialog(true)}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
@@ -364,6 +384,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
             {!isReporter && !hasAlreadyClaimed && ticket.status !== "returned_closed" && (
               <button
+                type="button"
                 onClick={() => onOpenClaim(ticket)}
                 className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
               >
@@ -397,10 +418,12 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             </p>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="handover-notes" className="block text-xs font-semibold text-slate-700 mb-1">
                 Handover Notes / Verification Summary
               </label>
               <textarea
+                id="handover-notes"
+                name="handover-notes"
                 rows={3}
                 value={handoverNotes}
                 onChange={(e) => setHandoverNotes(e.target.value)}

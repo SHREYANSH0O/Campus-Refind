@@ -23,7 +23,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
+      <div role="dialog" aria-modal="true" aria-labelledby="notifications-title" className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -36,7 +36,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
               )}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">
+              <h3 id="notifications-title" className="font-bold text-slate-900 text-base">
                 Campus Notifications
               </h3>
               <p className="text-xs text-slate-500">
@@ -48,6 +48,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           <div className="flex items-center gap-1">
             {unreadCount > 0 && (
               <button
+                type="button"
                 onClick={onMarkAllRead}
                 className="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition"
               >
@@ -55,7 +56,9 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
               </button>
             )}
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close notifications"
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
             >
               <X className="w-5 h-5" />
@@ -106,6 +109,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                         <span>{n.timestamp}</span>
                         {n.ticketId && (
                           <button
+                            type="button"
                             onClick={() => {
                               onSelectTicketById(n.ticketId!);
                               onClose();
@@ -129,6 +133,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
           <span>Campus ReFind Real-time Alerts</span>
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-1.5 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition"
           >

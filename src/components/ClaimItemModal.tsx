@@ -18,7 +18,7 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
   onSubmitClaim,
 }) => {
   const [proofDetails, setProofDetails] = useState("");
-  const [contactNumber, setContactNumber] = useState("+1 (555) 019-8822");
+  const [contactNumber, setContactNumber] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -38,7 +38,7 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+      <div role="dialog" aria-modal="true" aria-labelledby="claim-modal-title" className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -46,7 +46,7 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">
+              <h3 id="claim-modal-title" className="font-bold text-slate-900 text-base">
                 Claim Verification Request
               </h3>
               <p className="text-xs text-slate-500">
@@ -55,7 +55,9 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close claim form"
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
           >
             <X className="w-5 h-5" />
@@ -85,10 +87,12 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="claim-proof" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Proof of Ownership / Identifying Details *
               </label>
               <textarea
+                id="claim-proof"
+                name="claim-proof"
                 required
                 rows={4}
                 value={proofDetails}
@@ -100,7 +104,7 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="claim-phone" className="block text-xs font-semibold text-slate-700 mb-1">
                   Claimant Name
                 </label>
                 <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 font-medium">
@@ -114,8 +118,11 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
+                    id="claim-phone"
+                    name="claim-phone"
                     type="tel"
                     required
+                    autoComplete="tel"
                     value={contactNumber}
                     onChange={(e) => setContactNumber(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -127,6 +134,8 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
             <div className="pt-2">
               <label className="flex items-start gap-2.5 cursor-pointer select-none">
                 <input
+                  id="claim-truthfulness-confirmation"
+                  name="claim-truthfulness-confirmation"
                   type="checkbox"
                   required
                   checked={agreedTerms}

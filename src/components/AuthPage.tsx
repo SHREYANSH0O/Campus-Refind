@@ -16,6 +16,8 @@ import { CampusUser } from "../types";
 import {
   registerWithEmailVerification,
   loginWithEmail,
+  getCampusUserProfile,
+  requestPasswordReset,
   resendVerificationEmail,
   checkEmailVerification,
 } from "../services/firebaseService";
@@ -38,7 +40,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Sign Up State (All new registrations are standard Student accounts; Admin is strictly designated by Shreyansh Singh)
   const [signupName, setSignupName] = useState("");
@@ -48,7 +50,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [signupShowPassword, setSignupShowPassword] = useState(false);
-  const [agreeHonorCode, setAgreeHonorCode] = useState(true);
+  const [agreeHonorCode, setAgreeHonorCode] = useState(false);
   const [signupError, setSignupError] = useState("");
 
   // Verification Pending State
@@ -60,6 +62,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   // Loading / Feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   // Cooldown timer
@@ -106,7 +109,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
   };
 
-  // ================= 1. MANUAL SIGN IN SUBMIT =================
+  // ================= 1. FIREBASE SIGN IN =================
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
@@ -114,8 +117,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const identifier = loginIdentifier.trim().toLowerCase();
     const password = loginPassword.trim();
 
-    if (!identifier) {
-      setLoginError("Please enter your campus email or Student Code.");
+    if (!identifier || !identifier.includes("@")) {
+      setLoginError("Please enter your campus email address.");
       return;
     }
 
@@ -127,73 +130,66 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setIsSubmitting(true);
 
     try {
-      const isMasterAdmin = identifier === "shreyanshsingh105@gmail.com";
-
-      // 1. Check local seed / cached user list first
-      const matchedUser = allUsers.find(
-        (u) =>
-          u.email.toLowerCase() === identifier ||
-          u.campusId.toLowerCase() === identifier
+      const { firebaseUser } = await loginWithEmail(
+        identifier,
+        password,
+        rememberMe
       );
-
-      // 2. Try Firebase Email/Password Sign In
-      let firebaseEmailVerified = false;
+      let cloudProfile: CampusUser | null = null;
       try {
-        if (identifier.includes("@")) {
-          const { firebaseUser } = await loginWithEmail(identifier, password);
-          firebaseEmailVerified = firebaseUser.emailVerified;
-        }
-      } catch (fbErr: any) {
-        if (!matchedUser) {
-          if (fbErr?.code === "auth/operation-not-allowed" || fbErr?.code === "auth/user-not-found" || fbErr?.code === "auth/invalid-credential") {
-            setLoginError("Account not found. Please verify your credentials or click 'Register new profile' below.");
-            setIsSubmitting(false);
-            return;
-          }
-          throw fbErr;
-        }
+        cloudProfile = await getCampusUserProfile(firebaseUser.uid);
+      } catch (profileError) {
+        console.warn("The campus profile could not be fetched:", profileError);
       }
+      const activeUser =
+        cloudProfile ||
+        allUsers.find(
+          (user) =>
+            user.id === firebaseUser.uid ||
+            user.email.toLowerCase() === identifier
+        );
 
-      if (!matchedUser && !identifier.includes("@")) {
-        setLoginError("Student Code not found. Please verify your code or register a new profile below.");
-        setIsSubmitting(false);
+      if (!activeUser) {
+        setLoginError("Your sign-in succeeded, but your campus profile could not be loaded. Contact the Campus Desk.");
         return;
       }
 
-      if (matchedUser && matchedUser.password && matchedUser.password !== password) {
-        setLoginError("Invalid password. Please check your credentials and try again.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const activeUser = matchedUser || {
-        id: `user-${Date.now()}`,
-        name: identifier.split("@")[0] || "Campus Member",
-        email: identifier,
-        role: isMasterAdmin ? "Campus Security" : "Student",
-        department: "Computer Science & Engineering",
-        campusId: `STU-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        avatarInitials: getInitials(identifier) || "CU",
-        emailVerified: firebaseEmailVerified || isMasterAdmin,
-        authProvider: "password",
-      };
-
-      if (!isMasterAdmin && activeUser.emailVerified === false && !firebaseEmailVerified) {
+      if (!firebaseUser.emailVerified) {
         setVerificationPendingUser(activeUser);
         setVerificationError("Your email address has not been verified yet. Please verify your inbox below.");
-        setIsSubmitting(false);
         return;
       }
 
       setSuccessMessage(`Welcome back, ${activeUser.name}!`);
-      setTimeout(() => {
-        onLogin(activeUser);
-      }, 500);
+      onLogin(activeUser);
     } catch (err: any) {
       console.warn("Sign In error:", err);
       setLoginError(parseFirebaseAuthError(err));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setLoginError("");
+    setSuccessMessage("");
+    const email = loginIdentifier.trim().toLowerCase();
+    if (!email.includes("@")) {
+      setLoginError("Enter your campus email before requesting a reset.");
+      return;
+    }
+    setIsResettingPassword(true);
+    try {
+      await requestPasswordReset(email);
+      setSuccessMessage("If that account exists, a password-reset link has been sent to its campus email.");
+    } catch (error) {
+      if ((error as { code?: string })?.code === "auth/network-request-failed") {
+        setLoginError("The password-reset service is temporarily unavailable. Check your connection and try again.");
+      } else {
+        setSuccessMessage("If that account exists, a password-reset link has been sent to its campus email.");
+      }
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -269,58 +265,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
 
     try {
-      const isMasterAdmin = emailTrimmed === "shreyanshsingh105@gmail.com";
-
-      let firebaseUid = `user-${Date.now()}`;
-      let authEmailSent = false;
-      try {
-        const { firebaseUser } = await registerWithEmailVerification(
-          emailTrimmed,
-          signupPassword,
-          signupName.trim()
-        );
-        firebaseUid = firebaseUser.uid;
-        authEmailSent = true;
-      } catch (fbErr: any) {
-        if (fbErr?.code === "auth/email-already-in-use") {
-          setSignupError("An account with this email is already registered. Please sign in instead.");
-          setIsSubmitting(false);
-          return;
-        }
-        console.warn("Direct Firestore registration active (Auth fallback):", fbErr?.message || fbErr);
-        // Seamless fallback: register directly to Firestore database!
-      }
+      const { firebaseUser } = await registerWithEmailVerification(
+        emailTrimmed,
+        signupPassword,
+        signupName.trim()
+      );
 
       const generatedId = signupCampusId.trim();
 
       const newUser: CampusUser = {
-        id: firebaseUid,
+        id: firebaseUser.uid,
         name: signupName.trim(),
         email: emailTrimmed,
-        role: isMasterAdmin ? "Campus Security" : "Student",
+        role: "Student",
         department: signupDepartment,
         campusId: generatedId,
         avatarInitials: getInitials(signupName.trim()) || "CU",
-        password: signupPassword,
-        joinedDate: new Date().toISOString().split("T")[0],
-        emailVerified: true,
+        joinedDate: new Intl.DateTimeFormat("en-CA").format(new Date()),
+        emailVerified: false,
         authProvider: "password",
       };
 
-      if (authEmailSent && !isMasterAdmin) {
-        setVerificationPendingUser(newUser);
-        setVerificationInfo(`We sent an official verification link to ${newUser.email}.`);
-        setResendCooldown(45);
-      } else {
-        setSuccessMessage(
-          isMasterAdmin
-            ? `Master Admin profile registered! Redirecting...`
-            : `Registration successful! Welcome to Campus ReFind, ${newUser.name}.`
-        );
-        setTimeout(() => {
-          onRegister(newUser);
-        }, 500);
-      }
+      setVerificationPendingUser(newUser);
+      setVerificationInfo(`We sent an official verification link to ${newUser.email}.`);
+      setResendCooldown(45);
     } catch (err: any) {
       setSignupError(parseFirebaseAuthError(err));
     } finally {
@@ -338,7 +306,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     try {
       const isVerified = await checkEmailVerification();
 
-      if (isVerified || verificationPendingUser.email.toLowerCase() === "shreyanshsingh105@gmail.com") {
+      if (isVerified) {
         const verifiedUser: CampusUser = {
           ...verificationPendingUser,
           emailVerified: true,
@@ -567,14 +535,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                     {/* Email Input */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        EMAIL ID / STUDENT CODE
+                      <label htmlFor="login-email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        CAMPUS EMAIL
                       </label>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         <input
-                          type="text"
+                          id="login-email"
+                          name="username"
+                          type="email"
                           required
+                          autoComplete="username"
                           value={loginIdentifier}
                           onChange={(e) => setLoginIdentifier(e.target.value)}
                           placeholder="e.g. Rohitsharma@gmail.com"
@@ -586,25 +557,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {/* Password Input */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <label htmlFor="login-password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                           Password
                         </label>
                         <button
                           type="button"
-                          onClick={() =>
-                            alert(
-                              "If you forgot your password, please contact the Vivekanand Hall Central Desk or register a new profile with your verified campus email."
-                            )
-                          }
+                          onClick={handleForgotPassword}
+                          disabled={isResettingPassword}
                           className="text-[11px] text-blue-600 hover:underline font-semibold"
                         >
-                          Forgot password?
+                          {isResettingPassword ? "Sending reset link..." : "Forgot password?"}
                         </button>
                       </div>
                       <div className="relative">
                         <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         <input
+                          id="login-password"
+                          name="password"
                           type={showPassword ? "text" : "password"}
+                          required
+                          autoComplete="current-password"
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
                           placeholder="••••••••••••"
@@ -613,6 +585,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-pressed={showPassword}
                           className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -624,6 +598,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     <div className="flex items-center justify-between pt-1">
                       <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
                         <input
+                          id="remember-session"
+                          name="remember-session"
                           type="checkbox"
                           checked={rememberMe}
                           onChange={(e) => setRememberMe(e.target.checked)}
@@ -676,14 +652,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                     {/* Full Name */}
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <label htmlFor="signup-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                         Full Name *
                       </label>
                       <div className="relative">
                         <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         <input
+                          id="signup-name"
+                          name="name"
                           type="text"
                           required
+                          autoComplete="name"
                           value={signupName}
                           onChange={(e) => setSignupName(e.target.value)}
                           placeholder="e.g. Rohit Sharma"
@@ -694,14 +673,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                     {/* Campus Email */}
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <label htmlFor="signup-email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                         Institutional / Campus Email *
                       </label>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                         <input
+                          id="signup-email"
+                          name="email"
                           type="email"
                           required
+                          autoComplete="email"
                           value={signupEmail}
                           onChange={(e) => setSignupEmail(e.target.value)}
                           placeholder="e.g. Rohitsharma@gmail.com"
@@ -715,10 +697,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                     {/* Department Dropdown */}
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <label htmlFor="signup-department" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                         Academic Department *
                       </label>
                       <select
+                        id="signup-department"
+                        name="department"
                         value={signupDepartment}
                         onChange={(e) => setSignupDepartment(e.target.value)}
                         className="w-full px-3 py-2.5 text-xs sm:text-sm border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none text-slate-900 bg-slate-50/50 focus:bg-white transition"
@@ -735,12 +719,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                     {/* Student Code */}
                     <div className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <label htmlFor="signup-campus-id" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                         Student Code *
                       </label>
                       <input
+                        id="signup-campus-id"
+                        name="campus-id"
                         type="text"
                         required
+                        autoComplete="off"
                         value={signupCampusId}
                         onChange={(e) => setSignupCampusId(e.target.value)}
                         placeholder="e.g. B23----------87"
@@ -751,14 +738,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {/* Password & Confirm Password */}
                     <div className="space-y-3 pt-0.5">
                       <div className="space-y-1">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <label htmlFor="signup-password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                           Password (min. 6 chars) *
                         </label>
                         <div className="relative">
                           <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                           <input
+                            id="signup-password"
+                            name="new-password"
                             type={signupShowPassword ? "text" : "password"}
                             required
+                            minLength={6}
+                            autoComplete="new-password"
                             value={signupPassword}
                             onChange={(e) => setSignupPassword(e.target.value)}
                             placeholder="••••••••"
@@ -767,6 +758,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           <button
                             type="button"
                             onClick={() => setSignupShowPassword(!signupShowPassword)}
+                            aria-label={signupShowPassword ? "Hide password" : "Show password"}
+                            aria-pressed={signupShowPassword}
                             className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
                           >
                             {signupShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -775,12 +768,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       </div>
 
                       <div className="space-y-1">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <label htmlFor="signup-confirm-password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                           Confirm Password *
                         </label>
                         <input
+                          id="signup-confirm-password"
+                          name="confirm-password"
                           type={signupShowPassword ? "text" : "password"}
                           required
+                          minLength={6}
+                          autoComplete="new-password"
                           value={signupConfirmPassword}
                           onChange={(e) => setSignupConfirmPassword(e.target.value)}
                           placeholder="••••••••"
@@ -792,7 +789,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {/* Campus Honor Code Checkbox */}
                     <label className="flex items-start gap-2.5 cursor-pointer pt-1">
                       <input
+                        id="campus-honor-code"
+                        name="campus-honor-code"
                         type="checkbox"
+                        required
                         checked={agreeHonorCode}
                         onChange={(e) => setAgreeHonorCode(e.target.checked)}
                         className="w-4 h-4 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"

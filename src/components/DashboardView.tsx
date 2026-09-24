@@ -69,6 +69,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <button
+              type="button"
               id="dashboard-report-lost-btn"
               onClick={() => onOpenReport("lost")}
               className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white text-xs font-bold transition shadow-lg shadow-rose-900/30 flex items-center gap-2"
@@ -78,6 +79,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </button>
 
             <button
+              type="button"
               id="dashboard-report-found-btn"
               onClick={() => onOpenReport("found")}
               className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold transition shadow-lg shadow-emerald-900/30 flex items-center gap-2"
@@ -88,6 +90,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {onOpenAdminDesk && isSecurityOfficer && (
               <button
+                type="button"
                 id="dashboard-admin-desk-btn"
                 onClick={onOpenAdminDesk}
                 className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white text-xs font-bold transition shadow-lg shadow-blue-950/40 flex items-center gap-2"
@@ -163,6 +166,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
         <button
+          type="button"
           onClick={onOpenBrowse}
           className="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1.5 shrink-0 hover:underline"
         >
@@ -181,6 +185,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </p>
           </div>
           <button
+            type="button"
             onClick={onOpenBrowse}
             className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline"
           >
@@ -202,12 +207,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="flex items-center justify-center gap-2 pt-2">
               <button
+                type="button"
                 onClick={() => onOpenReport("lost")}
                 className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-2xs"
               >
                 Report Lost Item
               </button>
               <button
+                type="button"
                 onClick={() => onOpenReport("found")}
                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-2xs"
               >
@@ -222,8 +229,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               return (
                 <div
                   key={ticket.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Inspect ${ticket.title}, ticket ${ticket.ticketNumber}`}
                   onClick={() => onSelectItem(ticket)}
-                  className="bg-white rounded-2xl border border-slate-200/80 hover:border-blue-400 hover:shadow-md transition duration-150 p-4 flex flex-col justify-between cursor-pointer group"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onSelectItem(ticket);
+                    }
+                  }}
+                  className="bg-white rounded-2xl border border-slate-200/80 hover:border-blue-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 p-4 flex flex-col justify-between cursor-pointer group"
                 >
                   <div>
                     {/* Image & Badges */}

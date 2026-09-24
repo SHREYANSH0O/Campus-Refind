@@ -287,6 +287,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
           </p>
         </div>
         <button
+          type="button"
           onClick={() => onOpenReport("lost")}
           className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-2 self-start sm:self-auto"
         >
@@ -304,6 +305,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
           </span>
           {selectedCategory !== "all" && (
             <button
+              type="button"
               onClick={() => setSelectedCategory("all")}
               className="text-[11px] text-blue-600 hover:underline font-semibold"
             >
@@ -314,6 +316,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           <button
+            type="button"
             onClick={() => setSelectedCategory("all")}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shrink-0 flex items-center gap-1.5 ${
               selectedCategory === "all"
@@ -338,6 +341,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
 
             return (
               <button
+                type="button"
                 key={cat.name}
                 onClick={() => setSelectedCategory(isSelected ? "all" : cat.name)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shrink-0 flex items-center gap-1.5 ${
@@ -369,6 +373,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
+              id="report-search"
+              name="report-search"
+              aria-label="Search campus reports"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -377,7 +384,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery("")}
+                aria-label="Clear report search"
                 className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
@@ -386,9 +395,11 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
           </div>
 
           {/* Type Toggle Pills (All / Lost / Found) */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl shrink-0">
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl shrink-0" role="group" aria-label="Report type filter">
             <button
+              type="button"
               onClick={() => setSelectedType("all")}
+              aria-pressed={selectedType === "all"}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedType === "all"
                   ? "bg-white text-slate-900 shadow-xs"
@@ -398,7 +409,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
               All Types
             </button>
             <button
+              type="button"
               onClick={() => setSelectedType("lost")}
+              aria-pressed={selectedType === "lost"}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedType === "lost"
                   ? "bg-rose-600 text-white shadow-xs"
@@ -408,7 +421,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
               Lost Only
             </button>
             <button
+              type="button"
               onClick={() => setSelectedType("found")}
+              aria-pressed={selectedType === "found"}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                 selectedType === "found"
                   ? "bg-emerald-600 text-white shadow-xs"
@@ -421,7 +436,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
 
           {/* Toggle Advanced Filters Button */}
           <button
+            type="button"
             onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+            aria-expanded={isAdvancedOpen}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 shrink-0 ${
               isAdvancedOpen || activeAdvancedCount > 0
                 ? "bg-blue-50 border-blue-300 text-blue-700"
@@ -449,11 +466,13 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* 1. Building Location Selector */}
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <label htmlFor="filter-building" className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                   <Building className="w-3.5 h-3.5 text-blue-600" />
                   <span>Campus Building</span>
                 </label>
                 <select
+                  id="filter-building"
+                  name="filter-building"
                   value={selectedBuilding}
                   onChange={(e) => setSelectedBuilding(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-slate-800 font-medium"
@@ -469,11 +488,13 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
 
               {/* 2. Specific Area / Room Input */}
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <label htmlFor="filter-specific-area" className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-blue-600" />
                   <span>Room / Specific Area</span>
                 </label>
                 <input
+                  id="filter-specific-area"
+                  name="filter-specific-area"
                   type="text"
                   value={specificAreaQuery}
                   onChange={(e) => setSpecificAreaQuery(e.target.value)}
@@ -484,11 +505,13 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
 
               {/* 3. Status Filter */}
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <label htmlFor="filter-status" className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
                   <span>Resolution Status</span>
                 </label>
                 <select
+                  id="filter-status"
+                  name="filter-status"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-slate-800 font-medium"
@@ -502,11 +525,13 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
 
               {/* 4. Sort Order */}
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <label htmlFor="filter-sort" className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                   <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" />
                   <span>Sort Order</span>
                 </label>
                 <select
+                  id="filter-sort"
+                  name="filter-sort"
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-slate-800 font-medium"
@@ -542,6 +567,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
                     ] as const
                   ).map((preset) => (
                     <button
+                      type="button"
                       key={preset.key}
                       onClick={() => setDatePreset(preset.key)}
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
@@ -560,10 +586,12 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
               {datePreset === "custom" && (
                 <div className="pt-2 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                    <label htmlFor="filter-date-start" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                       From Date
                     </label>
                     <input
+                      id="filter-date-start"
+                      name="filter-date-start"
                       type="date"
                       value={customStartDate}
                       onChange={(e) => setCustomStartDate(e.target.value)}
@@ -571,10 +599,12 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                    <label htmlFor="filter-date-end" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                       To Date
                     </label>
                     <input
+                      id="filter-date-end"
+                      name="filter-date-end"
                       type="date"
                       value={customEndDate}
                       onChange={(e) => setCustomEndDate(e.target.value)}
@@ -599,7 +629,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 shadow-2xs text-slate-800">
               <span>Query: &ldquo;{searchQuery}&rdquo;</span>
               <button
+                type="button"
                 onClick={() => setSearchQuery("")}
+                aria-label="Remove search filter"
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-3 h-3" />
@@ -611,7 +643,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 shadow-2xs text-slate-800">
               <span className="capitalize">{selectedType} Items</span>
               <button
+                type="button"
                 onClick={() => setSelectedType("all")}
+                aria-label="Remove report type filter"
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-3 h-3" />
@@ -623,7 +657,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 shadow-2xs text-slate-800">
               <span>Category: {selectedCategory}</span>
               <button
+                type="button"
                 onClick={() => setSelectedCategory("all")}
+                aria-label="Remove category filter"
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-3 h-3" />
@@ -635,7 +671,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 shadow-2xs text-slate-800">
               <span>Building: {selectedBuilding}</span>
               <button
+                type="button"
                 onClick={() => setSelectedBuilding("all")}
+                aria-label="Remove building filter"
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-3 h-3" />
@@ -647,7 +685,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-blue-200 shadow-2xs text-slate-800">
               <span>Area: &ldquo;{specificAreaQuery}&rdquo;</span>
               <button
+                type="button"
                 onClick={() => setSpecificAreaQuery("")}
+                aria-label="Remove area filter"
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-3 h-3" />
@@ -670,6 +710,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
                   : "Past 30 Days"}
               </span>
               <button
+                type="button"
                 onClick={() => {
                   setDatePreset("all");
                   setCustomStartDate("");
@@ -693,7 +734,9 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
                   : "Returned & Closed"}
               </span>
               <button
+                type="button"
                 onClick={() => setSelectedStatus("all")}
+                aria-label="Remove status filter"
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-3 h-3" />
@@ -702,6 +745,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
           )}
 
           <button
+            type="button"
             onClick={handleResetAllFilters}
             className="ml-auto text-xs font-bold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1 shrink-0"
           >
@@ -721,7 +765,10 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
           {/* View Mode Toggle: Grid vs List */}
           <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
             <button
+              type="button"
               onClick={() => setViewMode("grid")}
+              aria-label="Show reports as a grid"
+              aria-pressed={viewMode === "grid"}
               className={`p-1.5 rounded-md transition ${
                 viewMode === "grid" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
               }`}
@@ -730,7 +777,10 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
               <Grid className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("list")}
+              aria-label="Show reports as a list"
+              aria-pressed={viewMode === "list"}
               className={`p-1.5 rounded-md transition ${
                 viewMode === "list" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
               }`}
@@ -765,6 +815,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
           <div className="flex items-center justify-center gap-3 pt-2">
             {tickets.length > 0 && hasAnyFilterActive && (
               <button
+                type="button"
                 onClick={handleResetAllFilters}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
               >
@@ -773,6 +824,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
               </button>
             )}
             <button
+              type="button"
               onClick={() => onOpenReport("lost")}
               className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
             >
@@ -780,6 +832,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
               <span>Report Lost Item</span>
             </button>
             <button
+              type="button"
               onClick={() => onOpenReport("found")}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
             >
@@ -798,8 +851,17 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             return (
               <div
                 key={ticket.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Inspect ${ticket.title}, ticket ${ticket.ticketNumber}`}
                 onClick={() => onSelectItem(ticket)}
-                className="bg-white rounded-2xl border border-slate-200/80 hover:border-blue-400 hover:shadow-md transition duration-150 p-4 flex flex-col justify-between cursor-pointer group"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelectItem(ticket);
+                  }
+                }}
+                className="bg-white rounded-2xl border border-slate-200/80 hover:border-blue-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 p-4 flex flex-col justify-between cursor-pointer group"
               >
                 <div>
                   {/* Image & Badges */}
@@ -911,8 +973,17 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
             return (
               <div
                 key={ticket.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Inspect ${ticket.title}, ticket ${ticket.ticketNumber}`}
                 onClick={() => onSelectItem(ticket)}
-                className="p-4 sm:p-5 hover:bg-slate-50/80 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer group"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelectItem(ticket);
+                  }
+                }}
+                className="p-4 sm:p-5 hover:bg-slate-50/80 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer group"
               >
                 <div className="flex items-start sm:items-center gap-4 min-w-0">
                   <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 relative">
@@ -981,7 +1052,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
                     </span>
                   )}
 
-                  <button className="px-3.5 py-1.5 bg-blue-600 group-hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-2xs">
+                  <button type="button" className="px-3.5 py-1.5 bg-blue-600 group-hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-2xs">
                     View Details
                   </button>
                 </div>

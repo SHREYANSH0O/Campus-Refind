@@ -368,15 +368,19 @@ You can ask:
           </div>
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={resetChat}
+              aria-label="Reset assistant conversation"
               title="Reset conversation"
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
+              type="button"
               id="assistant-modal-close-btn"
               onClick={onClose}
+              aria-label="Close assistant"
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
             >
               <X className="w-5 h-5" />
@@ -408,6 +412,7 @@ You can ask:
                           const IconComp = topic.icon;
                           return (
                             <button
+                              type="button"
                               key={topic.id}
                               onClick={() => handleTopicClick(topic.query)}
                               className="w-full flex items-center justify-between p-3 rounded-2xl border border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/40 bg-white transition group text-left shadow-xs active:scale-[0.99]"
@@ -487,6 +492,7 @@ You can ask:
           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 px-1">
             <span>Powered by Gemini AI • Campus Lost & Found Knowledge Base</span>
             <button
+              type="button"
               onClick={() => {
                 onClose();
                 onNavigateTab("browse");

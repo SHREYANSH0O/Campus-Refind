@@ -54,6 +54,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
         {/* Sub-tab Pills */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl self-start sm:self-auto">
           <button
+            type="button"
             onClick={() => setActiveSubTab("my_claims")}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${
               activeSubTab === "my_claims"
@@ -64,6 +65,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
             My Claims ({myClaims.length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveSubTab("my_reports")}
             className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${
               activeSubTab === "my_reports"
@@ -145,6 +147,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
                         )}
 
                         <button
+                          type="button"
                           onClick={() => onSelectItem(ticket)}
                           className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
                         >
@@ -177,6 +180,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
                         </div>
 
                         <button
+                          type="button"
                           onClick={() => onSelectItem(ticket)}
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition shadow-xs self-start sm:self-center"
                         >
@@ -205,6 +209,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
                 You haven&apos;t logged any lost or found belongings yet. Report an item to make it visible to campus.
               </p>
               <button
+                type="button"
                 onClick={onOpenReport}
                 className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl transition"
               >
@@ -275,6 +280,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
                         )}
 
                         <button
+                          type="button"
                           onClick={() => onSelectItem(ticket)}
                           className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-xs"
                         >
@@ -288,6 +294,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
                       <span>Total claims received: {ticket.claims.length}</span>
                       {!isClosed && (
                         <button
+                          type="button"
                           onClick={() => onSelectItem(ticket)}
                           className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline flex items-center gap-1"
                         >

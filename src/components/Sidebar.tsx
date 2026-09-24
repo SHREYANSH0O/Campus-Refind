@@ -94,6 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const isActive = currentTab === item.id;
             return (
               <button
+                type="button"
                 key={item.id}
                 id={`nav-btn-${item.id}`}
                 onClick={() => setCurrentTab(item.id)}
@@ -125,8 +126,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Bottom Profile & Role Switcher */}
       <div className="p-4 border-t border-slate-800/80 relative">
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={showUserMenu}
           onClick={() => setShowUserMenu(!showUserMenu)}
-          className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition-colors"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setShowUserMenu(!showUserMenu);
+            }
+          }}
+          className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
@@ -159,6 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="space-y-1">
               <button
+                type="button"
                 onClick={() => {
                   setShowUserMenu(false);
                   onOpenLoginModal();
@@ -170,6 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
               {onLogout && (
                 <button
+                  type="button"
                   onClick={() => {
                     setShowUserMenu(false);
                     onLogout();
