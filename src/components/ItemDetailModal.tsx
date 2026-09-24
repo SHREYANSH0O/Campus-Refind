@@ -14,7 +14,7 @@ import {
   Building,
   KeyRound,
 } from "lucide-react";
-import { ItemTicket, CampusUser, displayRole } from "../types";
+import { ItemTicket, CampusUser, displayRole, isPortalAdminRole } from "../types";
 
 interface ItemDetailModalProps {
   isOpen: boolean;
@@ -45,6 +45,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
   if (!isOpen) return null;
 
   const isReporter = ticket.reporterId === currentUser.id;
+  const isAdmin = isPortalAdminRole(currentUser.role);
   const canManageTicket = isReporter;
 
   const hasAlreadyClaimed = ticket.claims.some(
@@ -237,7 +238,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
                 <span>{canManageTicket ? `Submitted Claims (${totalClaimCount})` : visibleClaims.length > 0 ? "Your Submitted Claim" : "Claims are private"}</span>
               </h3>
-              {ticket.status !== "returned_closed" && !isReporter && !hasAlreadyClaimed && (
+              {ticket.status !== "returned_closed" && !isAdmin && !isReporter && !hasAlreadyClaimed && (
                 <button
                   type="button"
                   id="claim-this-item-btn"
@@ -396,7 +397,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               </button>
             )}
 
-            {!isReporter && !hasAlreadyClaimed && ticket.status !== "returned_closed" && (
+            {!isAdmin && !isReporter && !hasAlreadyClaimed && ticket.status !== "returned_closed" && (
               <button
                 type="button"
                 onClick={() => onOpenClaim(ticket)}
