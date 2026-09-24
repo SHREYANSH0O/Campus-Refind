@@ -45,8 +45,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "browse", label: "Browse reports", icon: Search },
-    { id: "report", label: "Report an item", icon: PackagePlus },
-    { id: "claims", label: "My claims", icon: FileCheck2 },
+    ...(!isAdmin
+      ? [
+          { id: "report", label: "Report an item", icon: PackagePlus },
+          { id: "claims", label: "My claims", icon: FileCheck2 },
+        ]
+      : []),
     { id: "support", label: "Help & Support", icon: LifeBuoy },
     ...(isAdmin
       ? [
