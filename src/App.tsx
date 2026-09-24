@@ -282,10 +282,7 @@ export default function App() {
       return;
     }
     if (tab === "admin_desk") {
-      const isAdmin =
-        !!currentUser &&
-        (isPortalAdminRole(currentUser.role) ||
-          currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com");
+      const isAdmin = !!currentUser && isPortalAdminRole(currentUser.role);
       if (!isAdmin) {
         setCurrentTab("dashboard");
         setMobileMenuOpen(false);
@@ -664,9 +661,7 @@ if (rejectedTicket && rejectedClaim) {
   ) => {
     if (!currentUser) return;
 
-    const isAdmin =
-      isPortalAdminRole(currentUser.role) ||
-      currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
+    const isAdmin = isPortalAdminRole(currentUser.role);
     if (!isAdmin) return;
 
     const target = supportRequests.find((request) => request.id === requestId);
@@ -855,8 +850,12 @@ if (rejectedTicket && rejectedClaim) {
                 Campus ReFind
               </span>
               <span className="text-slate-300 hidden sm:inline">•</span>
-              <span className="text-xs font-semibold text-slate-500 capitalize">
-                {currentTab.replace("_", " ")}
+              <span className="text-xs font-semibold text-slate-500">
+                {currentTab === "admin_desk"
+                  ? "Admin & Support"
+                  : currentTab === "support"
+                  ? "Help & Support"
+                  : currentTab.replace("_", " ")}
               </span>
             </div>
           </div>
@@ -932,8 +931,7 @@ if (rejectedTicket && rejectedClaim) {
               onOpenBrowse={() => setCurrentTab("browse")}
               onSelectItem={(ticket) => setSelectedTicket(ticket)}
               onOpenAdminDesk={
-                isPortalAdminRole(currentUser.role) ||
-                currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com"
+                isPortalAdminRole(currentUser.role)
                   ? () => setCurrentTab("admin_desk")
                   : undefined
               }
