@@ -144,7 +144,7 @@ export function subscribeToTickets(
                 }
               : {};
 
-            if (canManageTicket || claims.length > 0) {
+            if (canManageTicket) {
               try {
                 const privateSnapshot = await getDoc(
                   doc(

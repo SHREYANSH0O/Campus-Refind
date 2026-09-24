@@ -33,8 +33,9 @@ service cloud.firestore {
     }
 
     match /tickets/{ticketId} {
-      // privacyVersion 2 parent documents contain public-safe ticket fields only.
-      // Private reporter/claim data lives in subcollections.
+      // privacyVersion 2 ticket documents are public-safe parent records.
+      // Private reporter/claim data is forced into subcollections by write rules.
+      // Keep this read condition query-compatible because Firestore rules are not filters.
       allow read: if isAuthenticated()
         && (resource.data.privacyVersion == 2
           || resource.data.reporterId == request.auth.uid
@@ -42,6 +43,7 @@ service cloud.firestore {
       allow create: if isAuthenticated()
         && request.resource.data.reporterId == request.auth.uid
         && request.resource.data.privacyVersion == 2
+        && request.resource.data.claimCount == 0
         && !request.resource.data.keys().hasAny([
           "reporterContact",
           "secretIdentifiers",
@@ -67,8 +69,10 @@ service cloud.firestore {
           && request.resource.data.status == "under_verification"
           && request.resource.data.claimCount
             == resource.data.get("claimCount", 0) + 1
+          && request.resource.data.claimCount is int
           && !exists(/databases/$(database)/documents/tickets/$(ticketId)/claims/$(request.auth.uid))
-          && existsAfter(/databases/$(database)/documents/tickets/$(ticketId)/claims/$(request.auth.uid))
+          && getAfter(/databases/$(database)/documents/tickets/$(ticketId)/claims/$(request.auth.uid)).data.claimantId
+            == request.auth.uid
         );
       allow delete: if isSecurity()
         || (isAuthenticated() && resource.data.reporterId == request.auth.uid);
@@ -84,7 +88,7 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/tickets/$(ticketId)/claims/$(request.auth.uid));
         }
 
-        allow read: if isSecurity() || isTicketReporter() || isTicketClaimant();
+        allow read: if isSecurity() || isTicketReporter();
         allow create, update, delete: if isSecurity() || isTicketReporter();
       }
 
@@ -95,7 +99,8 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid);
         allow create: if isAuthenticated()
           && claimId == request.auth.uid
-          && request.resource.data.claimantId == request.auth.uid;
+          && request.resource.data.claimantId == request.auth.uid
+          && request.resource.data.ticketId == ticketId;
         allow update, delete: if isSecurity()
           || (isAuthenticated()
             && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid);
