@@ -13,15 +13,16 @@ import {
   LogOut,
   UserCheck,
   Database,
+  LifeBuoy,
 } from "lucide-react";
-import { CampusUser } from "../types";
+import { CampusUser, displayRole, isPortalAdminRole } from "../types";
 
 interface SidebarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   currentUser: CampusUser;
   unreadCount: number;
-  pendingReviewCount?: number;
+  adminAlertCount?: number;
   onOpenAssistant?: () => void;
   onOpenLoginModal: () => void;
   onLogout?: () => void;
@@ -32,29 +33,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setCurrentTab,
   currentUser,
   unreadCount,
-  pendingReviewCount = 0,
+  adminAlertCount = 0,
   onOpenAssistant,
   onOpenLoginModal,
   onLogout,
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const isSecurityOfficer =
-    currentUser?.role === "Campus Security" ||
-    currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com";
+  const isAdmin =
+    isPortalAdminRole(currentUser.role) ||
+    currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "browse", label: "Browse reports", icon: Search },
     { id: "report", label: "Report an item", icon: PackagePlus },
     { id: "claims", label: "My claims", icon: FileCheck2 },
-    ...(isSecurityOfficer
+    { id: "support", label: "Help & Support", icon: LifeBuoy },
+    ...(isAdmin
       ? [
           {
             id: "admin_desk",
-            label: "Security & Desk",
+            label: "Admin & Support",
             icon: ShieldCheck,
-            badge: pendingReviewCount > 0 ? pendingReviewCount : undefined,
+            badge: adminAlertCount > 0 ? adminAlertCount : undefined,
             badgeColor: "bg-amber-500",
           },
         ]
@@ -149,8 +151,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="text-xs text-slate-400 flex items-center gap-1">
                 {currentUser.role === "Student" && <GraduationCap className="w-3 h-3 text-emerald-400" />}
                 {currentUser.role === "Faculty" && <Briefcase className="w-3 h-3 text-amber-400" />}
-                {currentUser.role === "Campus Security" && <Shield className="w-3 h-3 text-blue-400" />}
-                <span>{currentUser.role}</span>
+                {isPortalAdminRole(currentUser.role) && <Shield className="w-3 h-3 text-blue-400" />}
+                <span>{displayRole(currentUser.role)}</span>
               </div>
             </div>
           </div>
@@ -164,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
               <div className="text-[11px] text-slate-400 truncate">{currentUser.email}</div>
               <div className="text-[10px] text-blue-400 font-mono mt-0.5">
-                {currentUser.role} • {currentUser.campusId}
+                {displayRole(currentUser.role)} • {currentUser.campusId}
               </div>
             </div>
             <div className="space-y-1">
