@@ -58,6 +58,7 @@ const LEGACY_MOCK_USER_IDS = new Set([
   "user-john-smith",
   "user-elena-rostova",
   "user-marcus-vance",
+  "user-shreyansh-admin",
 ]);
 
 export default function App() {
