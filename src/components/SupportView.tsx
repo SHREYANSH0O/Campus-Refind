@@ -13,7 +13,7 @@ interface SupportViewProps {
     issueType: SupportIssueType,
     subject: string,
     description: string
-  ) => void;
+  ) => Promise<void>;
 }
 
 const issueOptions: SupportIssueType[] = [
@@ -34,22 +34,37 @@ export const SupportView: React.FC<SupportViewProps> = ({
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const ownRequests = useMemo(
     () => requests.filter((request) => request.userId === currentUser.id),
     [requests, currentUser.id]
   );
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!subject.trim() || !description.trim()) return;
+    if (!subject.trim() || !description.trim() || isSubmitting) return;
 
-    onSubmit(issueType, subject.trim(), description.trim());
-    setSubject("");
-    setDescription("");
-    setIssueType("Technical Bug");
-    setSubmitted(true);
-    window.setTimeout(() => setSubmitted(false), 2500);
+    setIsSubmitting(true);
+    setSubmitError("");
+    setSubmitted(false);
+
+    try {
+      await onSubmit(issueType, subject.trim(), description.trim());
+      setSubject("");
+      setDescription("");
+      setIssueType("Technical Bug");
+      setSubmitted(true);
+      window.setTimeout(() => setSubmitted(false), 2500);
+    } catch (error) {
+      console.error("Support request submission failed:", error);
+      setSubmitError(
+        "Concern could not be submitted. Please try again. If this continues, the latest Firestore rules may not be deployed."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -124,12 +139,18 @@ export const SupportView: React.FC<SupportViewProps> = ({
             </div>
           )}
 
+          {submitError && (
+            <div className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+              {submitError}
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={!subject.trim() || !description.trim()}
+            disabled={!subject.trim() || !description.trim() || isSubmitting}
             className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-bold transition"
           >
-            Submit Concern
+            {isSubmitting ? "Submitting..." : "Submit Concern"}
           </button>
         </form>
 
