@@ -174,7 +174,7 @@ export const MyClaimsView: React.FC<MyClaimsViewProps> = ({
                               Handover Code: {claim.handoverCode || "REFIND-VERIFIED"}
                             </div>
                             <div className="text-emerald-800">
-                              Collect at <strong>Vivekanand Hall Central Desk</strong> with your Campus ID card.
+                              Coordinate a safe campus handover with the report creator and present your handover code when you meet.
                             </div>
                           </div>
                         </div>
