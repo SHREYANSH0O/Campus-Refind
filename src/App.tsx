@@ -623,12 +623,14 @@ if (rejectedTicket && rejectedClaim) {
     }
   };
 
-  const handleSubmitSupportRequest = (
+  const handleSubmitSupportRequest = async (
     issueType: SupportIssueType,
     subject: string,
     description: string
   ) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      throw new Error("You must be signed in to submit a support request.");
+    }
 
     const request: SupportRequest = {
       id: `support-${crypto.randomUUID()}`,
@@ -642,10 +644,11 @@ if (rejectedTicket && rejectedClaim) {
       createdAt: new Date().toISOString(),
     };
 
-    setSupportRequests((prev) => [request, ...prev]);
-    saveSupportRequestToFirestore(request).catch((error) => {
-      console.error("Support request could not be submitted:", error);
-      setSupportRequests((prev) => prev.filter((item) => item.id !== request.id));
+    await saveSupportRequestToFirestore(request);
+
+    setSupportRequests((prev) => {
+      if (prev.some((item) => item.id === request.id)) return prev;
+      return [request, ...prev];
     });
 
     createNotification(
@@ -654,6 +657,20 @@ if (rejectedTicket && rejectedClaim) {
       `Your concern "${subject}" has been sent to Portal Admin.`,
       "info"
     );
+
+    users
+      .filter(
+        (user) =>
+          isPortalAdminRole(user.role) && user.id !== currentUser.id
+      )
+      .forEach((adminUser) => {
+        createNotification(
+          adminUser.id,
+          "New support concern",
+          `${currentUser.name} submitted a ${issueType.toLowerCase()} concern: "${subject}".`,
+          "info"
+        );
+      });
   };
 
   const handleUpdateSupportRequest = (
