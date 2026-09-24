@@ -230,7 +230,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
         return a.title.localeCompare(b.title);
       }
       if (sortBy === "claims_desc") {
-        return b.claims.length - a.claims.length;
+        return (b.claimCount ?? b.claims.length) - (a.claimCount ?? a.claims.length);
       }
       return 0;
     });
@@ -946,7 +946,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
                     ) : isPending ? (
                       <span className="text-amber-600 font-semibold text-[11px] flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3" />
-                        <span>{ticket.claims.length} claim(s)</span>
+                        <span>{(ticket.claimCount ?? ticket.claims.length)} claim(s)</span>
                       </span>
                     ) : (
                       <span className="text-blue-600 font-semibold text-[11px]">
@@ -1044,7 +1044,7 @@ export const BrowseReportsView: React.FC<BrowseReportsViewProps> = ({
                     </span>
                   ) : isPending ? (
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                      {ticket.claims.length} claim(s)
+                      {(ticket.claimCount ?? ticket.claims.length)} claim(s)
                     </span>
                   ) : (
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">

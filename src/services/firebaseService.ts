@@ -9,6 +9,8 @@ import {
   query,
   where,
   onSnapshot,
+  increment,
+  writeBatch,
 } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
@@ -67,15 +69,21 @@ export function subscribeToTickets(
       viewer.role === "Campus Security"
         ? query(ticketsRef)
         : query(ticketsRef, where("privacyVersion", "==", 2));
+
     return onSnapshot(
       q,
       async (snapshot) => {
         const ticketDocs = snapshot.docs.filter(
           (ticketDoc) => !PRE_REPORTED_TICKET_IDS.includes(ticketDoc.id)
         );
+
         const list = await Promise.all(
           ticketDocs.map(async (ticketDoc) => {
-            const rawTicket = { ...ticketDoc.data(), id: ticketDoc.id } as ItemTicket;
+            const rawTicket = {
+              ...ticketDoc.data(),
+              id: ticketDoc.id,
+            } as ItemTicket;
+
             const {
               claims: legacyClaims = [],
               reporterContact: legacyReporterContact = "",
@@ -83,24 +91,50 @@ export function subscribeToTickets(
               handoverNotes: legacyHandoverNotes,
               ...publicTicket
             } = rawTicket;
+
             const canManageTicket =
-              viewer.role === "Campus Security" || publicTicket.reporterId === viewer.id;
-            const claimsRef = collection(db, TICKETS_COLLECTION, ticketDoc.id, "claims");
-            const claimsSnapshot = await getDocs(
-              canManageTicket
-                ? claimsRef
-                : query(claimsRef, where("claimantId", "==", viewer.id))
+              viewer.role === "Campus Security" ||
+              publicTicket.reporterId === viewer.id;
+
+            const claimsRef = collection(
+              db,
+              TICKETS_COLLECTION,
+              ticketDoc.id,
+              "claims"
             );
-            const storedClaims = claimsSnapshot.docs.map(
-              (claimDoc) => ({
-                ...claimDoc.data(),
-                id: claimDoc.data().id || claimDoc.id,
-              }) as ClaimVerification
-            );
-            const claims =
-              storedClaims.length > 0 || !canManageTicket
-                ? storedClaims
-                : legacyClaims;
+
+            let claims: ClaimVerification[] = [];
+            let claimsLoadedSuccessfully = false;
+
+            try {
+              const claimsSnapshot = await getDocs(
+                canManageTicket
+                  ? claimsRef
+                  : query(claimsRef, where("claimantId", "==", viewer.id))
+              );
+
+              const storedClaims = claimsSnapshot.docs.map(
+                (claimDoc) =>
+                  ({
+                    ...claimDoc.data(),
+                    id: claimDoc.data().id || claimDoc.id,
+                  }) as ClaimVerification
+              );
+
+              claims =
+                storedClaims.length > 0 || !canManageTicket
+                  ? storedClaims
+                  : legacyClaims;
+
+              claimsLoadedSuccessfully = true;
+            } catch (error) {
+              // Never hide the public report just because a private claim read failed.
+              console.warn(
+                `Claims could not be loaded for ticket ${ticketDoc.id}:`,
+                error
+              );
+              claims = canManageTicket ? legacyClaims : [];
+            }
 
             let privateDetails: Partial<ItemTicket> = canManageTicket
               ? {
@@ -109,13 +143,55 @@ export function subscribeToTickets(
                   handoverNotes: legacyHandoverNotes,
                 }
               : {};
+
             if (canManageTicket || claims.length > 0) {
-              const privateSnapshot = await getDoc(
-                doc(db, TICKETS_COLLECTION, ticketDoc.id, "private", "details")
-              );
-              if (privateSnapshot.exists()) {
-                privateDetails = privateSnapshot.data() as Partial<ItemTicket>;
+              try {
+                const privateSnapshot = await getDoc(
+                  doc(
+                    db,
+                    TICKETS_COLLECTION,
+                    ticketDoc.id,
+                    "private",
+                    "details"
+                  )
+                );
+
+                if (privateSnapshot.exists()) {
+                  privateDetails =
+                    privateSnapshot.data() as Partial<ItemTicket>;
+                }
+              } catch (error) {
+                // Keep the public ticket visible even if private details fail.
+                console.warn(
+                  `Private details could not be loaded for ticket ${ticketDoc.id}:`,
+                  error
+                );
               }
+            }
+
+            const storedClaimCount =
+              typeof publicTicket.claimCount === "number"
+                ? publicTicket.claimCount
+                : undefined;
+
+            const claimCount =
+              storedClaimCount ??
+              (canManageTicket ? claims.length : 0);
+
+            // Self-heal old tickets once the reporter/security can see all claims.
+            if (
+              canManageTicket &&
+              claimsLoadedSuccessfully &&
+              storedClaimCount !== claims.length
+            ) {
+              updateDoc(ticketDoc.ref, {
+                claimCount: claims.length,
+              }).catch((error) => {
+                console.warn(
+                  `Claim count could not be repaired for ticket ${ticketDoc.id}:`,
+                  error
+                );
+              });
             }
 
             return {
@@ -123,9 +199,11 @@ export function subscribeToTickets(
               ...privateDetails,
               reporterContact: privateDetails.reporterContact || "",
               claims,
+              claimCount,
             } as ItemTicket;
           })
         );
+
         onUpdate(list);
       },
       (err) => {
@@ -155,7 +233,16 @@ export async function saveTicketToFirestore(ticket: ItemTicket, actor: CampusUse
       actor.role === "Campus Security" || actor.id === ticket.reporterId;
 
     if (canManageTicket) {
-      await setDoc(ticketRef, { ...publicTicket, privacyVersion: 2 });
+      const normalizedClaimCount = Math.max(
+        typeof ticket.claimCount === "number" ? ticket.claimCount : 0,
+        claims.length
+      );
+
+      await setDoc(ticketRef, {
+        ...publicTicket,
+        claimCount: normalizedClaimCount,
+        privacyVersion: 2,
+      });
       await setDoc(
         doc(db, TICKETS_COLLECTION, ticket.id, "private", "details"),
         {
@@ -180,12 +267,22 @@ export async function saveTicketToFirestore(ticket: ItemTicket, actor: CampusUse
 
     const ownClaim = claims.find((claim) => claim.claimantId === actor.id);
     if (!ownClaim) throw new Error("A claimant may only save their own claim.");
-    await setDoc(
-      doc(db, TICKETS_COLLECTION, ticket.id, "claims", actor.id),
-      ownClaim,
-      { merge: true }
+    const claimRef = doc(
+      db,
+      TICKETS_COLLECTION,
+      ticket.id,
+      "claims",
+      actor.id
     );
-    await updateDoc(ticketRef, { status: "under_verification" });
+
+    // Claim + public claimCount/status update are committed together.
+    const batch = writeBatch(db);
+    batch.set(claimRef, ownClaim);
+    batch.update(ticketRef, {
+      status: "under_verification",
+      claimCount: increment(1),
+    });
+    await batch.commit();
   } catch (error) {
     console.error("Error saving ticket to Firestore:", error);
     throw error;

@@ -306,6 +306,7 @@ export default function App() {
       reporterContact: currentUser.email,
       createdAt: new Date().toISOString(),
       claims: [],
+      claimCount: 0,
     };
 
     setTickets((prev) => [newTicket, ...prev]);
@@ -360,6 +361,7 @@ export default function App() {
             ...t,
             status: "under_verification" as const,
             claims: [newClaim, ...t.claims],
+            claimCount: (t.claimCount ?? t.claims.length) + 1,
           };
           updatedTicketForCloud = updated;
           return updated;
@@ -380,6 +382,7 @@ export default function App() {
               ...prev,
               status: "under_verification",
               claims: [newClaim, ...prev.claims],
+              claimCount: (prev.claimCount ?? prev.claims.length) + 1,
             }
           : null
       );

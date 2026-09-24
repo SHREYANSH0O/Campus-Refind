@@ -57,6 +57,8 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     ? ticket.claims
     : ticket.claims.filter((claim) => claim.claimantId === currentUser.id);
 
+  const totalClaimCount = ticket.claimCount ?? ticket.claims.length;
+
   const getStatusBadge = () => {
     switch (ticket.status) {
       case "returned_closed":
@@ -70,7 +72,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         return (
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-            <span>Under Verification ({ticket.claims.length} Claims)</span>
+            <span>Under Verification ({totalClaimCount} Claims)</span>
           </span>
         );
       default:
@@ -234,7 +236,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-blue-600" />
-                <span>{canManageTicket ? `Submitted Claims (${ticket.claims.length})` : visibleClaims.length > 0 ? "Your Submitted Claim" : "Claims are private"}</span>
+                <span>{canManageTicket ? `Submitted Claims (${totalClaimCount})` : visibleClaims.length > 0 ? "Your Submitted Claim" : "Claims are private"}</span>
               </h3>
               {ticket.status !== "returned_closed" && !isReporter && !hasAlreadyClaimed && (
                 <button
@@ -248,13 +250,18 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
               )}
             </div>
 
-            {ticket.claims.length === 0 ? (
+            {totalClaimCount === 0 ? (
               <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs">
                 No claims have been submitted yet. Campus members can submit ownership verification to initiate return.
               </div>
             ) : visibleClaims.length === 0 ? (
-              <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs">
-                Claimant identities, contact details, and ownership proof are private. Only the claimant, ticket reporter, and authorized Campus Security staff can review them.
+              <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs space-y-1">
+                <div className="font-semibold text-slate-700">
+                  {totalClaimCount} claim{totalClaimCount === 1 ? "" : "s"} submitted
+                </div>
+                <div>
+                  Claimant identities, contact details, and ownership proof are private. Only the claimant, ticket reporter, and authorized Campus Security staff can review them.
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

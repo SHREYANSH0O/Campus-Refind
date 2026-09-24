@@ -63,6 +63,8 @@ export interface ItemTicket {
   reporterContact: string;
   createdAt: string;
   claims: ClaimVerification[];
+  // Public-safe count; claimant identities and proof remain private.
+  claimCount?: number;
   handoverNotes?: string;
   closedAt?: string;
   closedBy?: string;

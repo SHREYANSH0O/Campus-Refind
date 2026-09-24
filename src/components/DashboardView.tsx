@@ -292,9 +292,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {/* Footer Bar */}
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                     <div className="text-slate-500">
-                      {ticket.claims.length > 0 ? (
+                      {(ticket.claimCount ?? ticket.claims.length) > 0 ? (
                         <span className="text-amber-600 font-semibold">
-                          {ticket.claims.length} claim{ticket.claims.length > 1 ? "s" : ""} filed
+                          {(ticket.claimCount ?? ticket.claims.length)} claim{(ticket.claimCount ?? ticket.claims.length) > 1 ? "s" : ""} filed
                         </span>
                       ) : (
                         <span className="text-slate-400">No claims yet</span>
