@@ -31,13 +31,14 @@ import { AuthModal } from "./components/AuthModal";
 import { AuthPage } from "./components/AuthPage";
 import { AdminDeskView } from "./components/AdminDeskView";
 import {
-  seedFirestoreIfEmpty,
   subscribeToTickets,
   saveTicketToFirestore,
   subscribeToUsers,
   saveUserToFirestore,
   subscribeToNotifications,
   saveNotificationToFirestore,
+  markNotificationsReadInFirestore,
+  logoutFirebaseAuth,
 } from "./services/firebaseService";
 
 const LEGACY_MOCK_TICKET_IDS = new Set([
@@ -141,11 +142,12 @@ export default function App() {
     }
   });
 
-  // Seed and subscribe to live Firestore collections
+  // Subscribe only after authentication. Seeding and cleanup belong in a
+  // trusted deployment process, never in every user's browser.
   useEffect(() => {
-    seedFirestoreIfEmpty();
+    if (!currentUser) return;
 
-    const unsubTickets = subscribeToTickets((cloudTickets) => {
+    const unsubTickets = subscribeToTickets(currentUser, (cloudTickets) => {
       // cloudTickets is already filtered to exclude legacy mock items
       setTickets(cloudTickets);
       localStorage.setItem("refind_tickets", JSON.stringify(cloudTickets));
@@ -156,13 +158,13 @@ export default function App() {
         setUsers(cloudUsers);
         localStorage.setItem("refind_users", JSON.stringify(cloudUsers));
       }
-    });
+    }, currentUser.role !== "Campus Security");
 
     return () => {
       unsubTickets();
       unsubUsers();
     };
-  }, []);
+  }, [currentUser?.id, currentUser?.role]);
 
   // Subscribe to live notifications for current user
   useEffect(() => {
@@ -192,7 +194,7 @@ export default function App() {
 
   // UI state
   const [currentTab, setCurrentTab] = useState<string>("dashboard");
-  const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(true); // Open initially to showcase assistant matching user screenshot!
+  const [isAssistantOpen, setIsAssistantOpen] = useState<boolean>(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
   const [reportDefaultType, setReportDefaultType] = useState<TicketType>("lost");
   const [selectedTicket, setSelectedTicket] = useState<ItemTicket | null>(null);
@@ -307,7 +309,7 @@ export default function App() {
     };
 
     setTickets((prev) => [newTicket, ...prev]);
-    saveTicketToFirestore(newTicket);
+    saveTicketToFirestore(newTicket, currentUser);
 
     // Add notification
         // 1. Reporter / Finder confirmation
@@ -367,7 +369,7 @@ export default function App() {
     );
 
     if (updatedTicketForCloud) {
-      saveTicketToFirestore(updatedTicketForCloud);
+      saveTicketToFirestore(updatedTicketForCloud, currentUser);
     }
 
     // Update selected ticket if currently inspecting
@@ -449,7 +451,7 @@ export default function App() {
     );
 
     if (updatedTicketForCloud) {
-      saveTicketToFirestore(updatedTicketForCloud);
+      saveTicketToFirestore(updatedTicketForCloud, currentUser);
     }
 
     if (selectedTicket && selectedTicket.id === ticketId) {
@@ -491,8 +493,9 @@ export default function App() {
   const handleRejectClaim = (
   ticketId: string,
   claimId: string,
-  rejectReason: string
+  rejectReason = "Ownership proof did not meet verification requirements."
 ) => {
+    if (!currentUser) return;
     let updatedTicketForCloud: ItemTicket | null = null;
 
     setTickets((prev) =>
@@ -512,7 +515,7 @@ export default function App() {
     );
 
     if (updatedTicketForCloud) {
-      saveTicketToFirestore(updatedTicketForCloud);
+      saveTicketToFirestore(updatedTicketForCloud, currentUser);
     }
 
    if (selectedTicket && selectedTicket.id === ticketId) {
@@ -572,7 +575,7 @@ if (rejectedTicket && rejectedClaim) {
     );
 
     if (updatedTicketForCloud) {
-      saveTicketToFirestore(updatedTicketForCloud);
+      saveTicketToFirestore(updatedTicketForCloud, currentUser);
     }
 
     if (selectedTicket && selectedTicket.id === ticketId) {
@@ -631,14 +634,30 @@ if (rejectedTicket && rejectedClaim) {
 
   // Sign out / Log out
   const handleLogout = () => {
+    logoutFirebaseAuth();
     setCurrentUser(null);
+    setTickets([]);
+    setNotifications([]);
     localStorage.removeItem("refind_auth_session");
     localStorage.removeItem("refind_current_user");
+    localStorage.removeItem("refind_tickets");
+    localStorage.removeItem("refind_notifications");
   };
 
   // Mark all notifications read
   const handleMarkAllRead = () => {
+    const unreadNotifications = notifications.filter((notification) => !notification.read);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    markNotificationsReadInFirestore(unreadNotifications).catch((error) => {
+      console.error("Notifications could not be marked as read:", error);
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          unreadNotifications.some((unread) => unread.id === notification.id)
+            ? { ...notification, read: false }
+            : notification
+        )
+      );
+    });
   };
 
   // Select ticket by ID (e.g. from notification)
@@ -697,10 +716,14 @@ if (rejectedTicket && rejectedClaim) {
       <AuthPage
         allUsers={users}
         onLogin={(user) => {
+          setTickets([]);
+          setNotifications([]);
           setCurrentUser(user);
           setCurrentTab("dashboard");
         }}
         onRegister={(newUser) => {
+          setTickets([]);
+          setNotifications([]);
           setUsers((prev) => [newUser, ...prev]);
           setCurrentUser(newUser);
           saveUserToFirestore(newUser);
@@ -755,7 +778,9 @@ if (rejectedTicket && rejectedClaim) {
         <header className="h-16 px-4 sm:px-8 border-b border-slate-200/80 bg-white/90 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation menu"
               className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl md:hidden transition"
             >
               <Menu className="w-5 h-5" />
@@ -774,6 +799,7 @@ if (rejectedTicket && rejectedClaim) {
           <div className="flex items-center gap-3">
             {/* Quick Raise Ticket Button in Header */}
             <button
+              type="button"
               id="header-report-btn"
               onClick={() => handleOpenReport("lost")}
               className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
@@ -784,7 +810,9 @@ if (rejectedTicket && rejectedClaim) {
 
             {/* Notifications Button */}
             <button
+              type="button"
               onClick={() => setIsNotificationsModalOpen(true)}
+              aria-label={unreadNotificationsCount > 0 ? `Open notifications (${unreadNotificationsCount} unread)` : "Open notifications"}
               className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition relative"
             >
               <Bell className="w-5 h-5" />
@@ -798,6 +826,7 @@ if (rejectedTicket && rejectedClaim) {
             {/* User Avatar with role pill */}
             <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
               <button
+                type="button"
                 onClick={() => setIsAuthModalOpen(true)}
                 className="flex items-center gap-2 hover:opacity-80 transition text-left"
                 title="View Campus Profile & ID"
@@ -816,7 +845,9 @@ if (rejectedTicket && rejectedClaim) {
               </button>
 
               <button
+                type="button"
                 onClick={handleLogout}
+                aria-label="Sign out of portal"
                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
                 title="Sign out of portal"
               >
@@ -827,7 +858,7 @@ if (rejectedTicket && rejectedClaim) {
         </header>
 
         {/* View Routing */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 pb-24 sm:p-8 max-w-7xl w-full mx-auto">
           {currentTab === "dashboard" && (
             <DashboardView
               tickets={tickets}
@@ -879,15 +910,17 @@ if (rejectedTicket && rejectedClaim) {
       {/* Persistent Floating AI Assistant Button (when modal is closed) */}
       {!isAssistantOpen && (
         <button
+          type="button"
           id="floating-assistant-toggle-btn"
           onClick={() => setIsAssistantOpen(true)}
-          className="fixed bottom-6 right-6 z-40 px-4 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-full shadow-2xl flex items-center gap-2.5 transition border-2 border-white/60 hover:shadow-blue-500/25 group"
+          aria-label="Open Campus ReFind Assistant"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 w-12 h-12 sm:w-auto sm:h-auto sm:px-4 sm:py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-full shadow-2xl flex items-center justify-center sm:justify-start gap-2.5 transition border-2 border-white/60 hover:shadow-blue-500/25 group"
         >
           <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
             <Bot className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xs font-bold tracking-wide">Campus ReFind Assistant</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="hidden sm:inline text-xs font-bold tracking-wide">Campus ReFind Assistant</span>
+          <span className="hidden sm:block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
         </button>
       )}
 
@@ -904,6 +937,7 @@ if (rejectedTicket && rejectedClaim) {
 
       {/* Report an Item Modal */}
       <ReportItemModal
+        key={`${reportDefaultType}-${isReportModalOpen ? "open" : "closed"}`}
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         currentUser={currentUser}

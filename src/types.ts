@@ -21,7 +21,6 @@ export interface CampusUser {
   department: string;
   campusId: string;
   avatarInitials: string;
-  password?: string;
   joinedDate?: string;
   emailVerified?: boolean;
   authProvider?: "google" | "password";
