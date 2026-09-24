@@ -12,7 +12,16 @@ import {
   Building,
   LogOut,
 } from "lucide-react";
-import { CampusUser, ItemTicket, CampusNotification, TicketType } from "./types";
+import {
+  CampusUser,
+  ItemTicket,
+  CampusNotification,
+  TicketType,
+  SupportRequest,
+  SupportIssueType,
+  isPortalAdminRole,
+  displayRole,
+} from "./types";
 import {
   CAMPUS_USERS,
   INITIAL_TICKETS,
@@ -30,6 +39,7 @@ import { NotificationsModal } from "./components/NotificationsModal";
 import { AuthModal } from "./components/AuthModal";
 import { AuthPage } from "./components/AuthPage";
 import { AdminDeskView } from "./components/AdminDeskView";
+import { SupportView } from "./components/SupportView";
 import {
   subscribeToTickets,
   saveTicketToFirestore,
@@ -38,6 +48,9 @@ import {
   subscribeToNotifications,
   saveNotificationToFirestore,
   markNotificationsReadInFirestore,
+  subscribeToSupportRequests,
+  saveSupportRequestToFirestore,
+  updateSupportRequestInFirestore,
   logoutFirebaseAuth,
 } from "./services/firebaseService";
 
@@ -143,6 +156,8 @@ export default function App() {
     }
   });
 
+  const [supportRequests, setSupportRequests] = useState<SupportRequest[]>([]);
+
   // Subscribe only after authentication. Seeding and cleanup belong in a
   // trusted deployment process, never in every user's browser.
   useEffect(() => {
@@ -159,7 +174,7 @@ export default function App() {
         setUsers(cloudUsers);
         localStorage.setItem("refind_users", JSON.stringify(cloudUsers));
       }
-    }, currentUser.role !== "Campus Security");
+    }, !isPortalAdminRole(currentUser.role));
 
     return () => {
       unsubTickets();
@@ -178,6 +193,18 @@ export default function App() {
       unsubNotifs();
     };
   }, [currentUser?.id]);
+
+  // Members see their own support requests; Portal Admin sees the full inbox.
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsubSupport = subscribeToSupportRequests(currentUser, (cloudRequests) => {
+      setSupportRequests(cloudRequests);
+    });
+    return () => {
+      unsubSupport();
+    };
+  }, [currentUser?.id, currentUser?.role]);
+
 
   // Sync users and current user to localStorage
   useEffect(() => {
@@ -242,24 +269,6 @@ export default function App() {
     saveNotificationToFirestore(notification);
   };
 
-  const notifySecurity = (
-    title: string,
-    message: string,
-    type: CampusNotification["type"],
-    ticketId?: string
-  ) => {
-    users
-      .filter((user) => user.role === "Campus Security")
-      .forEach((securityUser) => {
-        createNotification(
-          securityUser.id,
-          title,
-          message,
-          type,
-          ticketId
-        );
-      });
-  };
 
   // Handle Tab navigation
   const handleSelectTab = (tab: string) => {
@@ -273,10 +282,11 @@ export default function App() {
       return;
     }
     if (tab === "admin_desk") {
-      const isSecurityOfficer =
-        currentUser?.role === "Campus Security" ||
-        currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com";
-      if (!isSecurityOfficer) {
+      const isAdmin =
+        !!currentUser &&
+        (isPortalAdminRole(currentUser.role) ||
+          currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com");
+      if (!isAdmin) {
         setCurrentTab("dashboard");
         setMobileMenuOpen(false);
         return;
@@ -323,13 +333,6 @@ export default function App() {
       newTicket.id
     );
 
-    // 2. Campus Security notification
-    notifySecurity(
-      `New ${newTicket.type}-item report`,
-      `${currentUser.name} reported a ${newTicket.type} item "${newTicket.title}" at ${newTicket.location}.`,
-      "new_report",
-      newTicket.id
-    );
   };
 
   // Submit claim on a ticket
@@ -415,13 +418,6 @@ export default function App() {
         );
       }
 
-      // 3. Campus Security notification
-      notifySecurity(
-        "New claim to review",
-        `${currentUser.name} submitted a claim for "${reportedTicket.title}". Please review the ownership proof.`,
-        "claim_received",
-        ticketId
-      );
     }
   };
 
@@ -486,7 +482,7 @@ export default function App() {
       createNotification(
         approvedClaim.claimantId,
         "Claim approved + handover code",
-        `Your claim for "${approvedTicket.title}" has been approved. Your handover code is ${handoverCode}. Please bring your Campus ID to the Vivekanand Hall Central Lost & Found Desk.`,
+        `Your claim for "${approvedTicket.title}" has been approved. Your handover code is ${handoverCode}. Coordinate a safe campus handover with the report creator and share this code when you meet.`,
         "claim_approved",
         ticketId
       );
@@ -610,7 +606,7 @@ if (rejectedTicket && rejectedClaim) {
       createNotification(
         approvedClaim.claimantId,
         "Item returned successfully",
-        `"${closedTicket.title}" has been successfully handed over to you at the Campus Lost & Found Desk.`,
+        `"${closedTicket.title}" has been successfully handed over to you by the report creator.`,
         "item_returned",
         ticketId
       );
@@ -620,18 +616,88 @@ if (rejectedTicket && rejectedClaim) {
         createNotification(
           closedTicket.reporterId,
           "Item handed over",
-          `"${closedTicket.title}" has been handed over to its verified owner through Campus Security.`,
+          `"${closedTicket.title}" has been handed over to its verified owner.`,
           "item_handed_over",
           ticketId
         );
       }
 
-      // 3. Campus Security
-      notifySecurity(
-        "Handover completed",
-        `The item "${closedTicket.title}" has been successfully handed over and the ticket is now closed.`,
-        "handover_completed",
-        ticketId
+    }
+  };
+
+  const handleSubmitSupportRequest = (
+    issueType: SupportIssueType,
+    subject: string,
+    description: string
+  ) => {
+    if (!currentUser) return;
+
+    const request: SupportRequest = {
+      id: `support-${crypto.randomUUID()}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userEmail: currentUser.email,
+      issueType,
+      subject,
+      description,
+      status: "open",
+      createdAt: new Date().toISOString(),
+    };
+
+    setSupportRequests((prev) => [request, ...prev]);
+    saveSupportRequestToFirestore(request).catch((error) => {
+      console.error("Support request could not be submitted:", error);
+      setSupportRequests((prev) => prev.filter((item) => item.id !== request.id));
+    });
+
+    createNotification(
+      currentUser.id,
+      "Support request submitted",
+      `Your concern "${subject}" has been sent to Portal Admin.`,
+      "info"
+    );
+  };
+
+  const handleUpdateSupportRequest = (
+    requestId: string,
+    updates: Partial<Pick<SupportRequest, "status" | "adminReply">>
+  ) => {
+    if (!currentUser) return;
+
+    const isAdmin =
+      isPortalAdminRole(currentUser.role) ||
+      currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com";
+    if (!isAdmin) return;
+
+    const target = supportRequests.find((request) => request.id === requestId);
+    const withTimestamp = {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setSupportRequests((prev) =>
+      prev.map((request) =>
+        request.id === requestId ? { ...request, ...withTimestamp } : request
+      )
+    );
+
+    updateSupportRequestInFirestore(requestId, withTimestamp).catch((error) => {
+      console.error("Support request could not be updated:", error);
+    });
+
+    if (target && target.userId !== currentUser.id) {
+      const statusText =
+        updates.status === "in_progress"
+          ? "is now in progress"
+          : updates.status === "resolved"
+          ? "has been resolved"
+          : "has a new admin update";
+
+      createNotification(
+        target.userId,
+        "Support request updated",
+        `Your concern "${target.subject}" ${statusText}.`,
+        "info"
       );
     }
   };
@@ -642,6 +708,7 @@ if (rejectedTicket && rejectedClaim) {
     setCurrentUser(null);
     setTickets([]);
     setNotifications([]);
+    setSupportRequests([]);
     localStorage.removeItem("refind_auth_session");
     localStorage.removeItem("refind_current_user");
     localStorage.removeItem("refind_tickets");
@@ -674,20 +741,13 @@ if (rejectedTicket && rejectedClaim) {
 
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
 
-  const pendingReviewCount = useMemo(() => {
-    let count = 0;
-    tickets.forEach((t) => {
-      if (t.status !== "returned_closed") {
-        t.claims.forEach((c) => {
-          if (c.status === "pending") count++;
-        });
-      }
-    });
-    return count;
-  }, [tickets]);
+  const adminAlertCount = useMemo(
+    () => supportRequests.filter((request) => request.status !== "resolved").length,
+    [supportRequests]
+  );
 
   // Master Admin Role Designation: strictly restricted to Shreyansh Singh (shreyanshsingh105@gmail.com)
-  const handleUpdateUserRole = (targetUserId: string, newRole: "Student" | "Campus Security") => {
+  const handleUpdateUserRole = (targetUserId: string, newRole: "Student" | "Portal Admin") => {
     if (currentUser?.email.toLowerCase() !== "shreyanshsingh105@gmail.com") {
       alert("Unauthorized: Only Shreyansh Singh can designate or revoke Admin privileges.");
       return;
@@ -699,7 +759,7 @@ if (rejectedTicket && rejectedClaim) {
           const updatedUser: CampusUser = {
             ...u,
             role: newRole,
-            department: newRole === "Campus Security" ? "Campus Safety & Administration" : u.department,
+            department: newRole === "Portal Admin" ? "Portal Administration & Support" : u.department,
           };
           saveUserToFirestore(updatedUser);
           return updatedUser;
@@ -722,6 +782,7 @@ if (rejectedTicket && rejectedClaim) {
         onLogin={(user) => {
           setTickets([]);
           setNotifications([]);
+          setSupportRequests([]);
           setCurrentUser(user);
           setCurrentTab("dashboard");
         }}
@@ -746,7 +807,7 @@ if (rejectedTicket && rejectedClaim) {
           setCurrentTab={handleSelectTab}
           currentUser={currentUser}
           unreadCount={unreadNotificationsCount}
-          pendingReviewCount={pendingReviewCount}
+          adminAlertCount={adminAlertCount}
           onOpenLoginModal={() => setIsAuthModalOpen(true)}
           onLogout={handleLogout}
         />
@@ -765,7 +826,7 @@ if (rejectedTicket && rejectedClaim) {
               setCurrentTab={handleSelectTab}
               currentUser={currentUser}
               unreadCount={unreadNotificationsCount}
-              pendingReviewCount={pendingReviewCount}
+              adminAlertCount={adminAlertCount}
               onOpenLoginModal={() => {
                 setIsAuthModalOpen(true);
                 setMobileMenuOpen(false);
@@ -843,7 +904,7 @@ if (rejectedTicket && rejectedClaim) {
                     {currentUser.name}
                   </div>
                   <div className="text-[10px] text-slate-500">
-                    {currentUser.role}
+                    {displayRole(currentUser.role)}
                   </div>
                 </div>
               </button>
@@ -871,8 +932,8 @@ if (rejectedTicket && rejectedClaim) {
               onOpenBrowse={() => setCurrentTab("browse")}
               onSelectItem={(ticket) => setSelectedTicket(ticket)}
               onOpenAdminDesk={
-                currentUser?.role === "Campus Security" ||
-                currentUser?.email?.toLowerCase() === "shreyanshsingh105@gmail.com"
+                isPortalAdminRole(currentUser.role) ||
+                currentUser.email.toLowerCase() === "shreyanshsingh105@gmail.com"
                   ? () => setCurrentTab("admin_desk")
                   : undefined
               }
@@ -896,15 +957,22 @@ if (rejectedTicket && rejectedClaim) {
             />
           )}
 
+          {currentTab === "support" && (
+            <SupportView
+              currentUser={currentUser}
+              requests={supportRequests}
+              onSubmit={handleSubmitSupportRequest}
+            />
+          )}
+
           {currentTab === "admin_desk" && (
             <AdminDeskView
               tickets={tickets}
               currentUser={currentUser}
               users={users}
+              supportRequests={supportRequests}
               onUpdateUserRole={handleUpdateUserRole}
-              onApproveClaim={handleApproveClaim}
-              onRejectClaim={handleRejectClaim}
-              onCloseTicket={handleCloseTicket}
+              onUpdateSupportRequest={handleUpdateSupportRequest}
               onSelectItem={(ticket) => setSelectedTicket(ticket)}
             />
           )}
