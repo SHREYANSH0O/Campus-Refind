@@ -53,6 +53,7 @@ const LEGACY_MOCK_USER_IDS = [
   "user-john-smith",
   "user-elena-rostova",
   "user-marcus-vance",
+  "user-shreyansh-admin",
 ];
 
 /**
