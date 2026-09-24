@@ -825,9 +825,9 @@ if (rejectedTicket && rejectedClaim) {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-50 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="h-screen overflow-hidden flex bg-slate-50 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex shrink-0">
+      <div className="hidden md:flex h-screen shrink-0">
         <Sidebar
           currentTab={currentTab}
           setCurrentTab={handleSelectTab}
@@ -864,7 +864,7 @@ if (rejectedTicket && rejectedClaim) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 h-screen overflow-y-auto flex flex-col min-w-0">
         {/* Top Navbar */}
         <header className="h-16 px-4 sm:px-8 border-b border-slate-200/80 bg-white/90 backdrop-blur-md flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
