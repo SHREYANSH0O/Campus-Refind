@@ -14,7 +14,7 @@ import {
   Building,
   KeyRound,
 } from "lucide-react";
-import { ItemTicket, CampusUser } from "../types";
+import { ItemTicket, CampusUser, displayRole } from "../types";
 
 interface ItemDetailModalProps {
   isOpen: boolean;
@@ -198,7 +198,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                     <div className="font-semibold text-slate-900">
                       {ticket.reporterName}
                     </div>
-                    <div className="text-slate-500">{ticket.reporterRole}</div>
+                    <div className="text-slate-500">{displayRole(ticket.reporterRole)}</div>
                   </div>
                 </div>
                 {ticket.reporterContact ? (
@@ -282,7 +282,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         </div>
                         <div>
                           <div className="font-semibold text-xs text-slate-900">
-                            {claim.claimantName} ({claim.claimantRole})
+                            {claim.claimantName} ({displayRole(claim.claimantRole)})
                           </div>
                           <div className="text-[11px] text-slate-500">
                             Submitted on {new Date(claim.submittedAt).toLocaleDateString()} • {claim.contactNumber}
