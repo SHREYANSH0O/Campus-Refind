@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, ShieldCheck, CheckCircle2, AlertCircle, FileText, Phone, Sparkles } from "lucide-react";
-import { ItemTicket, CampusUser } from "../types";
+import { ItemTicket, CampusUser, displayRole } from "../types";
 
 interface ClaimItemModalProps {
   isOpen: boolean;
@@ -108,7 +108,7 @@ export const ClaimItemModal: React.FC<ClaimItemModalProps> = ({
                   Claimant Name
                 </label>
                 <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 font-medium">
-                  {currentUser.name} ({currentUser.role})
+                  {currentUser.name} ({displayRole(currentUser.role)})
                 </div>
               </div>
               <div>
