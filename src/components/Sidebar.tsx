@@ -49,9 +49,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ? [
           { id: "report", label: "Report an item", icon: PackagePlus },
           { id: "claims", label: "My claims", icon: FileCheck2 },
+          { id: "support", label: "Help & Support", icon: LifeBuoy },
         ]
       : []),
-    { id: "support", label: "Help & Support", icon: LifeBuoy },
     ...(isAdmin
       ? [
           {
