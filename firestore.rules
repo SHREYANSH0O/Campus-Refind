@@ -9,27 +9,30 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isSecurity() {
+    function isPortalAdmin() {
       return isAuthenticated()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "Campus Security";
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in [
+          "Portal Admin",
+          "Campus Security"
+        ];
     }
 
     match /users/{userId} {
-      allow read: if isSelf(userId) || isSecurity()
-        || (isAuthenticated() && resource.data.role == "Campus Security");
+      allow read: if isSelf(userId) || isPortalAdmin()
+        || (isAuthenticated() && resource.data.role in ["Portal Admin", "Campus Security"]);
       allow create: if isSelf(userId)
         && request.resource.data.id == request.auth.uid
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.role == "Student"
         && !request.resource.data.keys().hasAny(["password"]);
-      allow update: if isSecurity()
+      allow update: if isPortalAdmin()
         || (isSelf(userId)
           && request.resource.data.id == resource.data.id
           && request.resource.data.email == resource.data.email
           && request.resource.data.role == resource.data.role
           && !request.resource.data.keys().hasAny(["password"]));
-      allow delete: if isSecurity();
+      allow delete: if isPortalAdmin();
     }
 
     match /tickets/{ticketId} {
@@ -38,8 +41,7 @@ service cloud.firestore {
       // Keep this read condition query-compatible because Firestore rules are not filters.
       allow read: if isAuthenticated()
         && (resource.data.privacyVersion == 2
-          || resource.data.reporterId == request.auth.uid
-          || isSecurity());
+          || resource.data.reporterId == request.auth.uid);
       allow create: if isAuthenticated()
         && request.resource.data.reporterId == request.auth.uid
         && request.resource.data.privacyVersion == 2
@@ -51,9 +53,8 @@ service cloud.firestore {
           "claims"
         ]);
       allow update: if (
-          (isSecurity()
-            || (isAuthenticated()
-              && resource.data.reporterId == request.auth.uid))
+          (isAuthenticated()
+            && resource.data.reporterId == request.auth.uid)
           && request.resource.data.privacyVersion == 2
           && !request.resource.data.keys().hasAny([
             "reporterContact",
@@ -74,7 +75,7 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/tickets/$(ticketId)/claims/$(request.auth.uid)).data.claimantId
             == request.auth.uid
         );
-      allow delete: if isSecurity()
+      allow delete: if isPortalAdmin()
         || (isAuthenticated() && resource.data.reporterId == request.auth.uid);
 
       match /private/{privateId} {
@@ -83,22 +84,20 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid;
         }
 
-        allow read: if isSecurity() || isTicketReporter();
-        allow create, update, delete: if isSecurity() || isTicketReporter();
+        allow read: if isTicketReporter();
+        allow create, update, delete: if isTicketReporter();
       }
 
       match /claims/{claimId} {
-        allow read: if isSecurity()
-          || (isAuthenticated() && resource.data.claimantId == request.auth.uid)
+        allow read: if (isAuthenticated() && resource.data.claimantId == request.auth.uid)
           || (isAuthenticated()
             && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid);
         allow create: if isAuthenticated()
           && claimId == request.auth.uid
           && request.resource.data.claimantId == request.auth.uid
           && request.resource.data.ticketId == ticketId;
-        allow update, delete: if isSecurity()
-          || (isAuthenticated()
-            && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid);
+        allow update, delete: if isAuthenticated()
+          && get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId == request.auth.uid;
       }
     }
 
@@ -110,17 +109,32 @@ service cloud.firestore {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated()
         && (request.resource.data.userId == request.auth.uid
-          || isSecurity()
+          || isPortalAdmin()
           || (request.resource.data.ticketId is string
             && relatedTicket().data.reporterId == request.resource.data.userId)
           || (request.resource.data.ticketId is string
             && exists(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId)/claims/$(request.resource.data.userId)))
           || (exists(/databases/$(database)/documents/users/$(request.resource.data.userId))
-            && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.role == "Campus Security"));
+            && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.role in ["Portal Admin", "Campus Security"]));
       allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"]);
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /supportRequests/{requestId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == "open";
+
+      allow read: if isPortalAdmin()
+        || (isAuthenticated() && resource.data.userId == request.auth.uid);
+
+      allow update: if isPortalAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["status", "adminReply", "updatedAt"]);
+
+      allow delete: if isPortalAdmin();
     }
   }
 }
