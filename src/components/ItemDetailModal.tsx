@@ -124,7 +124,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 <div className="font-bold text-sm">Item Successfully Reunited!</div>
                 <p>
                   This ticket was returned to its verified owner and officially closed by{" "}
-                  <strong>{ticket.closedBy || "Campus Officer"}</strong> on{" "}
+                  <strong>{ticket.closedBy || "Report creator"}</strong> on{" "}
                   {ticket.closedAt ? new Date(ticket.closedAt).toLocaleDateString() : "recent date"}.
                 </p>
                 {ticket.handoverNotes && (
@@ -207,19 +207,19 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   </div>
                 ) : (
                   <div className="text-right text-slate-400 max-w-[180px]">
-                    Contact details are private and handled through the Campus Desk.
+                    Contact details remain private until they are needed for a verified handover.
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Secret Identifiers (Shown only to Reporter or Security Officer) */}
+          {/* Secret Identifiers (shown only to the original reporter) */}
           {canManageTicket && ticket.secretIdentifiers && (
             <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-1 text-xs">
               <div className="flex items-center gap-2 font-bold text-amber-900">
                 <Lock className="w-4 h-4 text-amber-600" />
-                <span>Secret Verification Criteria (Private to You & Campus Desk)</span>
+                <span>Secret Verification Criteria (Private to Reporter)</span>
               </div>
               <p className="text-amber-800 leading-relaxed font-mono bg-white/80 p-2.5 rounded-xl border border-amber-100">
                 {ticket.secretIdentifiers}
@@ -384,7 +384,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
             </button>
 
             {/* Confirm Return & Close Ticket Action */}
-            {canManageTicket && ticket.status !== "returned_closed" && (
+            {canManageTicket && approvedClaim && ticket.status !== "returned_closed" && (
               <button
                 type="button"
                 id="confirm-return-close-btn"
@@ -392,7 +392,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Confirm Return & Close Ticket</span>
+                <span>Confirm Handover & Close Report</span>
               </button>
             )}
 
