@@ -76,7 +76,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div>
             <div className="font-bold text-lg text-white tracking-tight flex items-center gap-1.5">
-              <span>Campus</span>
               <span className="text-blue-400">ReFind</span>
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
