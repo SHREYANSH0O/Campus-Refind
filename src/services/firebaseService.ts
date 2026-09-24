@@ -26,11 +26,19 @@ import {
   User as FirebaseUser,
 } from "firebase/auth";
 import { db, auth } from "../firebase";
-import { CampusUser, ItemTicket, CampusNotification, ClaimVerification } from "../types";
+import {
+  CampusUser,
+  ItemTicket,
+  CampusNotification,
+  ClaimVerification,
+  SupportRequest,
+  isPortalAdminRole,
+} from "../types";
 
 const USERS_COLLECTION = "users";
 const TICKETS_COLLECTION = "tickets";
 const NOTIFICATIONS_COLLECTION = "notifications";
+const SUPPORT_REQUESTS_COLLECTION = "supportRequests";
 
 const wait = (milliseconds: number) =>
   new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -66,10 +74,7 @@ export function subscribeToTickets(
 ) {
   try {
     const ticketsRef = collection(db, TICKETS_COLLECTION);
-    const q =
-      viewer.role === "Campus Security"
-        ? query(ticketsRef)
-        : query(ticketsRef, where("privacyVersion", "==", 2));
+    const q = query(ticketsRef, where("privacyVersion", "==", 2));
 
     return onSnapshot(
       q,
@@ -93,9 +98,7 @@ export function subscribeToTickets(
               ...publicTicket
             } = rawTicket;
 
-            const canManageTicket =
-              viewer.role === "Campus Security" ||
-              publicTicket.reporterId === viewer.id;
+            const canManageTicket = publicTicket.reporterId === viewer.id;
 
             const claimsRef = collection(
               db,
@@ -179,7 +182,7 @@ export function subscribeToTickets(
               storedClaimCount ??
               (canManageTicket ? claims.length : 0);
 
-            // Self-heal old tickets once the reporter/security can see all claims.
+            // Self-heal old tickets once the original reporter can see all claims.
             if (
               canManageTicket &&
               claimsLoadedSuccessfully &&
@@ -230,8 +233,7 @@ export async function saveTicketToFirestore(ticket: ItemTicket, actor: CampusUse
       ...publicTicket
     } = ticket;
     const ticketRef = doc(db, TICKETS_COLLECTION, ticket.id);
-    const canManageTicket =
-      actor.role === "Campus Security" || actor.id === ticket.reporterId;
+    const canManageTicket = actor.id === ticket.reporterId;
 
     if (canManageTicket) {
       const normalizedClaimCount = Math.max(
@@ -311,7 +313,7 @@ export function subscribeToUsers(
   try {
     const usersRef = collection(db, USERS_COLLECTION);
     const q = securityOnly
-      ? query(usersRef, where("role", "==", "Campus Security"))
+      ? query(usersRef, where("role", "in", ["Portal Admin", "Campus Security"]))
       : query(usersRef);
     return onSnapshot(
       q,
@@ -413,6 +415,61 @@ export async function markNotificationsReadInFirestore(
   );
 }
 
+
+
+/**
+ * Sync support requests.
+ * Portal admins can see all requests; members only see requests they created.
+ */
+export function subscribeToSupportRequests(
+  viewer: CampusUser,
+  onUpdate: (requests: SupportRequest[]) => void
+) {
+  try {
+    const requestsRef = collection(db, SUPPORT_REQUESTS_COLLECTION);
+    const q = isPortalAdminRole(viewer.role)
+      ? query(requestsRef)
+      : query(requestsRef, where("userId", "==", viewer.id));
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs
+          .map((docSnap) => ({
+            ...docSnap.data(),
+            id: docSnap.id,
+          }) as SupportRequest)
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        onUpdate(list);
+      },
+      (err) => {
+        console.warn("Firestore support request subscription error:", err);
+      }
+    );
+  } catch (error) {
+    console.warn("Failed to subscribe to support requests:", error);
+    return () => {};
+  }
+}
+
+export async function saveSupportRequestToFirestore(
+  request: SupportRequest
+) {
+  await setDoc(doc(db, SUPPORT_REQUESTS_COLLECTION, request.id), request);
+}
+
+export async function updateSupportRequestInFirestore(
+  requestId: string,
+  updates: Partial<Pick<SupportRequest, "status" | "adminReply" | "updatedAt">>
+) {
+  await updateDoc(
+    doc(db, SUPPORT_REQUESTS_COLLECTION, requestId),
+    updates
+  );
+}
 
 /**
  * Register with Email and Password and send real email verification
